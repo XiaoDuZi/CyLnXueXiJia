@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.cy.cylnxuexijia.activities.CyLnXueXiJiaMainActivity">
+    tools:context="com.cy.cylnxuexijia.activities.PlayActivity">
 
-
-    <WebView
-        android:id="@+id/cy_webview"
+    <VideoView
+        android:id="@+id/cy_video"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scrollbars="none"/>
+        android:layout_height="match_parent"/>
+
+    <include
+        layout="@layout/progress_layout"/>
+
+    <include
+        layout="@layout/play_pause"/>
+
+
 </RelativeLayout>

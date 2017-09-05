@@ -1,13 +1,15 @@
-package com.cy.cylnxuexijia;
+package com.cy.cylnxuexijia.activities;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
-public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
+import com.cy.cylnxuexijia.R;
+
+public class PlayActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_cy_ln_xue_xi_jia_main);
+        setContentView(R.layout.activity_play);
     }
 }
