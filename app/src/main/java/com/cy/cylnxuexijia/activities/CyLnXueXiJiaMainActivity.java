@@ -6,11 +6,15 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.FrameLayout;
 
 import com.cy.cylnxuexijia.R;
 import com.cy.cylnxuexijia.comment.CommentInfo;
+import com.cy.cylnxuexijia.tools.JSAndroidInteractive;
+import com.cy.cylnxuexijia.views.CyVideoView;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -21,6 +25,10 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
 
     @BindView(R.id.cy_webview)
     WebView mCyWebview;
+    @BindView(R.id.cy_small_video)
+    CyVideoView mCySmallVideo;
+    @BindView(R.id.fl_cy_small_video)
+    FrameLayout mFlCySmallVideo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,23 +41,24 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDefaultTextEncodingName("utf-8");
         mCyWebview.loadUrl(CommentInfo.WEB_INDEX);
-//        mCyWebview.addJavascriptInterface(new JavaScriptObject(MainActivity.this), "android");
+        mCyWebview.addJavascriptInterface(new JSAndroidInteractive(CyLnXueXiJiaMainActivity.this,
+                mCySmallVideo,mFlCySmallVideo), "android");
         mCyWebview.setScrollContainer(false);
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Log.e(TAG, "onKeyDown: "+mCyWebview.getUrl());
-        Log.e(TAG, "onKeyDown: "+keyCode);
+        Log.e(TAG, "onKeyDown: " + mCyWebview.getUrl());
+        Log.e(TAG, "onKeyDown: " + keyCode);
         String currentURL = mCyWebview.getUrl();  //获取当前web页面的URL
         String endUrl = null;//最终URL
 
-    if (currentURL.indexOf("backUrl=") != -1) {
+        if (currentURL.indexOf("backUrl=") != -1) {
             try {
                 String subUrl = currentURL.substring(currentURL.indexOf("backUrl=") + "backUrl=".length(), currentURL.length());
                 //       解码编码     http://blog.csdn.net/junhuahouse/article/details/23087755
 //            String   text1  =   java.net.URLEncoder.encode("中国",   "utf-8"); 编码
-                String encodeUrl = java.net.URLDecoder.decode(subUrl, "utf-8");
+                String encodeUrl = URLDecoder.decode(subUrl, "utf-8");
                 endUrl = CommentInfo.WEB_INDEX + encodeUrl;
                 Log.e(TAG, "onKeyDown:encodeUrl: " + encodeUrl);
                 Log.e(TAG, "onKeyDown:endUrl: " + endUrl);
@@ -61,7 +70,7 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         } else {
             endUrl = currentURL;
         }
-        if (keyCode==KeyEvent.KEYCODE_BACK){
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (mCyWebview.canGoBack()) {
                 mCyWebview.loadUrl(endUrl);
                 return true;

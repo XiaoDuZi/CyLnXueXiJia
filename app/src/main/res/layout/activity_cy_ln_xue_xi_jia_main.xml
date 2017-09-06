@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,5 +11,25 @@
         android:id="@+id/cy_webview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@drawable/web_bg"
         android:scrollbars="none"/>
+
+    <FrameLayout
+        android:id="@+id/fl_cy_small_video"
+        android:layout_width="496dp"
+        android:layout_height="282dp"
+        android:layout_marginLeft="256dp"
+        android:layout_marginTop="150dp"
+        >
+
+        <!--android:foreground="@drawable/video_border"-->
+
+        <com.cy.cylnxuexijia.views.CyVideoView
+            android:id="@+id/cy_small_video"
+            android:layout_width="496dp"
+            android:layout_height="282dp"/>
+
+    </FrameLayout>
+
+
 </RelativeLayout>

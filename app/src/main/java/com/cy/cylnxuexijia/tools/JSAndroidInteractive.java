@@ -2,11 +2,16 @@ package com.cy.cylnxuexijia.tools;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
+import android.view.View;
 import android.webkit.JavascriptInterface;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import com.cy.cylnxuexijia.activities.PlayActivity;
 import com.cy.cylnxuexijia.bean.UserLauncherBean;
+import com.cy.cylnxuexijia.views.CyVideoView;
 
 /**
  * Created by Administrator on 2017/9/5 0005.
@@ -18,18 +23,62 @@ public class JSAndroidInteractive {
 
     Context mContxt;
     Activity mActivity;
+    private CyVideoView mCySmallVideoView;
+    private FrameLayout mFrameLayout;
 
-    public JSAndroidInteractive(Context contxt) {
+    public JSAndroidInteractive(Context contxt, CyVideoView cySmallVideo, FrameLayout flCySmallVideo) {
         mContxt = contxt;
         mActivity= (Activity) mContxt;
+        mCySmallVideoView=cySmallVideo;
+        mFrameLayout=flCySmallVideo;
     }
 
+
+    /**
+     * 隐藏小窗口播放视频
+     */
+    @JavascriptInterface
+    public void goneSmallVideo() {
+        mActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mFrameLayout.setVisibility(View.GONE);
+                mCySmallVideoView.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    /**
+     * 显示小窗口视频播放
+     */
+    @JavascriptInterface
+    public void showSmallVideo(String vodID) {
+        Log.e(TAG, "showSmallVideo: ");
+//        mPlatform = AppCommonInfo.Platform;
+//        getVodId(vodID);
+        mActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mFrameLayout.setVisibility(View.VISIBLE);
+                mCySmallVideoView.setVisibility(View.VISIBLE);
+//                mLnVideoView.setFocusable(false);
+//                mLnVideoView.clearFocus();
+//                if (mPlayVodID == null) {
+//                    mPlayVodID = mVodid.get(0);
+//                    getPlayUrl();
+//                } else {
+//                    mLnVideoView.start();
+//                }
+            }
+        });
+
+    }
 
     @JavascriptInterface //sdk17版本以上加上注解
     public String getKeyNo() {
         String card_num = UserLauncherBean.getInstance().getUserName();
         Log.d(TAG, card_num);
-        return card_num;
+        return "获取到了卡号";
     }
 
 //    @JavascriptInterface //sdk17版本以上加上注解
@@ -46,12 +95,12 @@ public class JSAndroidInteractive {
             public void run() {
 //                Toast.makeText(mContxt, "调用fun2:" + name, Toast.LENGTH_SHORT).show();
 //                PlayDataBean playDataBean = ConverUtil.jsonToBean(name, PlayDataBean.class);
-//                Intent intent = new Intent();
-//                intent.setClass(MainActivity.this, PlayerActivity.class);
+                Intent intent = new Intent();
+                intent.setClass(mActivity,PlayActivity.class);
 //                Bundle bundle = new Bundle();
 //                bundle.putSerializable("playData", playDataBean);
 //                intent.putExtras(bundle);
-//                startActivity(intent);
+                mActivity.startActivity(intent);
             }
         });
     }

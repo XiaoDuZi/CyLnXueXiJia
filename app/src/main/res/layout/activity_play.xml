@@ -9,13 +9,15 @@
     <VideoView
         android:id="@+id/cy_video"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:background="#FFFF"/>
 
-    <include
-        layout="@layout/progress_layout"/>
 
     <include
         layout="@layout/play_pause"/>
 
+
+        <include
+            layout="@layout/progress_layout"/>
 
 </RelativeLayout>

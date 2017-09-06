@@ -45,7 +45,8 @@
             android:id="@+id/seekBar"
             android:layout_width="750dp"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="18dp"/>
+            android:layout_marginLeft="18dp"
+            android:focusable="false"/>
 
         <TextView
             android:id="@+id/textView6"
