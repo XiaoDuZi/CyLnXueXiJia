@@ -1,41 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent">
+                android:id="@+id/rl_video_top_bottom"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-        android:layout_height="88dp"
+        android:layout_height="80dp"
         android:layout_alignParentTop="true"
         android:background="@drawable/pv_full_screen_top"
-        android:orientation="horizontal"
-        android:id="@+id/linearLayout">
+        android:orientation="horizontal">
 
         <TextView
+            android:id="@+id/tv_video_name"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="20dp"
+            android:text="视频名称"
+            android:textSize="24sp"/>
 
     </LinearLayout>
 
 
-
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="88dp"
+        android:layout_height="80dp"
         android:layout_alignParentBottom="true"
         android:background="@drawable/pv_full_screen_bottom"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <ImageView
-            android:id="@+id/button2"
+            android:id="@+id/iv_video_pause_play"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="32dp"
-            android:src="@drawable/pv_play"/>
+            android:src="@drawable/pv_pause"/>
 
         <TextView
-            android:id="@+id/textView5"
+            android:id="@+id/tv_video_playing_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="26dp"
@@ -43,13 +48,16 @@
 
         <SeekBar
             android:id="@+id/seekBar"
-            android:layout_width="750dp"
+            android:layout_width="1000dp"
             android:layout_height="wrap_content"
             android:layout_marginLeft="18dp"
+            android:max="100"
+            android:progress="1"
+            android:secondaryProgress="0"
             android:focusable="false"/>
 
         <TextView
-            android:id="@+id/textView6"
+            android:id="@+id/tv_video_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="32dp"

@@ -4,6 +4,8 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.VideoView;
 
+import com.cy.cylnxuexijia.fragments.SmallVideoFragment;
+
 
 /**
  * Created by Administrator on 2017/6/14 0014.
@@ -29,4 +31,5 @@ public class CyVideoView extends VideoView {
         int height = getDefaultSize(0, heightMeasureSpec);
         setMeasuredDimension(width, height);
     }
+
 }

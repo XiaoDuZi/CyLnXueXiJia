@@ -7,6 +7,7 @@ import android.widget.Button;
 
 import com.cy.cylnxuexijia.R;
 import com.cy.cylnxuexijia.tools.AIDLGetUserInfo;
+import com.cy.cylnxuexijia.tools.JSAndroidInteractive;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -27,8 +28,12 @@ public class SplashActivity extends AppCompatActivity {
 
     @OnClick(R.id.button)
     public void onViewClicked() {
-//        Intent intent=new Intent(SplashActivity.this,CyLnXueXiJiaMainActivity.class);
-        Intent intent=new Intent(SplashActivity.this,PlayActivity.class);
+//        JSAndroidInteractive jsAndroidInteractive=new JSAndroidInteractive(SplashActivity.this);
+//        jsAndroidInteractive.getKeyNo();
+//        jsAndroidInteractive.getOrderActivity("你好！");
+//        jsAndroidInteractive.authentication("用户：");
+        Intent intent=new Intent(SplashActivity.this,CyLnXueXiJiaMainActivity.class);
+//        Intent intent=new Intent(SplashActivity.this,PlayActivity.class);
         startActivity(intent);
     }
 }

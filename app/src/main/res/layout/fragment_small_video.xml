@@ -1,0 +1,12 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:tools="http://schemas.android.com/tools"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             tools:context="com.cy.cylnxuexijia.fragments.SmallVideoFragment">
+
+    <com.cy.cylnxuexijia.views.CyVideoView
+        android:id="@+id/cy_small_video"
+        android:layout_width="496dp"
+        android:layout_height="282dp"/>
+
+</FrameLayout>

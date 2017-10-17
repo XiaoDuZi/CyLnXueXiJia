@@ -18,18 +18,10 @@
         android:id="@+id/fl_cy_small_video"
         android:layout_width="496dp"
         android:layout_height="282dp"
-        android:layout_marginLeft="256dp"
+        android:layout_marginLeft="258dp"
         android:layout_marginTop="150dp"
-        >
-
-        <!--android:foreground="@drawable/video_border"-->
-
-        <com.cy.cylnxuexijia.views.CyVideoView
-            android:id="@+id/cy_small_video"
-            android:layout_width="496dp"
-            android:layout_height="282dp"/>
-
-    </FrameLayout>
-
+        android:foreground="@drawable/small_video_border_yellow"
+        android:visibility="gone"
+        />
 
 </RelativeLayout>

@@ -7,18 +7,19 @@
               android:layout_marginTop="88dp"
               android:background="@color/transparent"
               android:gravity="center"
+              android:visibility="gone"
               android:orientation="vertical">
 
     <LinearLayout
         android:id="@+id/ll_play"
-        android:layout_width="598dp"
+        android:layout_width="560dp"
         android:layout_height="332dp"
         android:background="@drawable/video_pause_border"
         android:gravity="center"
         android:orientation="vertical">
 
         <GridView
-            android:id="@+id/lv_play"
+            android:id="@+id/gv_play_up"
             android:layout_width="306dp"
             android:layout_height="wrap_content"
             android:divider="@null"
@@ -31,12 +32,14 @@
 
 
     <GridView
-        android:id="@+id/gv_play"
+        android:id="@+id/gv_play_down"
         android:layout_width="wrap_content"
         android:layout_height="216dp"
         android:layout_marginLeft="100dp"
         android:layout_marginRight="100dp"
-        android:listSelector="@drawable/video_pause_border"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:listSelector="@drawable/grid_down_border"
         android:columnWidth="16dp"
         android:gravity="center"
         android:focusable="false"
