@@ -1,5 +1,6 @@
 package com.cy.cylnxuexijia.activities;
 
+import android.app.DialogFragment;
 import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -34,6 +35,8 @@ import com.cy.cylnxuexijia.bean.PointsBean;
 import com.cy.cylnxuexijia.bean.TermsBean;
 import com.cy.cylnxuexijia.bean.VideoBean;
 import com.cy.cylnxuexijia.bean.VideosBean;
+import com.cy.cylnxuexijia.fragments.BuyDialogFragment;
+import com.cy.cylnxuexijia.fragments.OrderDialogFragment;
 import com.cy.cylnxuexijia.interfaces.PlayDataService;
 import com.cy.cylnxuexijia.interfaces.PlayUrlService;
 import com.cy.cylnxuexijia.tools.ConverUtil;
@@ -61,7 +64,7 @@ import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_PARAMS_JUNITOR;
 import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_PARAMS_PRIMARY;
 import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_PARAMS_SENIOR;
 
-public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnBufferingUpdateListener {
+public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnErrorListener, AdapterView.OnItemClickListener {
 
     private static final String TAG = "PlayActivity";
 
@@ -95,8 +98,8 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     private String[] listViewData = {"上一节", "下一节", "继续观看", "浏览课件"};
     private int[] gridViewImage = {R.drawable.class_point1, R.drawable.class_point2,
             R.drawable.class_point3, R.drawable.class_point4};
-    private List<GridViewBean> mGridViewDataList ;
-    private GridViewBean gridViedBean ;
+    private List<GridViewBean> mGridViewDataList;
+    private GridViewBean gridViedBean;
     private boolean mShowPauseWindow = false;
     private String mPlatform;
     private String mVideoID;
@@ -115,12 +118,8 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 setZTEBoxPlayingTime();
             } else if (msg.what == SHOW_CONTROL) {
                 mRlVideoTopBottom.setVisibility(View.VISIBLE);
-                Log.e(TAG, "handleMessage: 1");
-//                mHandler.removeMessages(SHOW_CONTROL);
             } else if (msg.what == HIDE_CONTROL) {
                 mRlVideoTopBottom.setVisibility(View.GONE);
-                Log.e(TAG, "handleMessage: 2");
-//                mHandler.removeMessages(HIDE_CONTROL);
             }
             return false;
         }
@@ -144,7 +143,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             return;
         }
         mVideoBean = (VideoBean) intent.getSerializableExtra("playData");
-        Log.e(TAG, "onCreate: "+ mVideoBean.toString());
+
 //        mVideoID = String.valueOf(videoBean.getVideo_id());
         mVideoID = "MOV58649e4ad9461c0f2388572a";
 
@@ -154,29 +153,6 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
         initDatas();
 
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
-        Log.e(TAG, "onRestart: ");
-//        mCyVideo.start();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.e(TAG, "onPause: ");
-        mCyVideo.pause();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.e(TAG, "onResume: ");
-//        mCyVideo.seekTo((int) mCurrentTime);
-
-        mCyVideo.start();
     }
 
     private void initDatas() {
@@ -198,13 +174,13 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 mParamsBeanList = new ArrayList<ParamsBean>();
                 for (TermsBean term : listTerms) {
                     for (PointsBean point : term.getPoints()) {
-                        if (point.getPoint_id().equals(String.valueOf(mVideoBean.getPoint_id()))){
+                        if (point.getPoint_id().equals(String.valueOf(mVideoBean.getPoint_id()))) {
                             Log.e(TAG, "onResponse:------------------------------------------------- ");
-                            mVideosBeanList=point.getVideos();
-                            mParamsBeanList = ConverUtil.jsonToBeanList(point.getParams(),ParamsBean.class);
+                            mVideosBeanList = point.getVideos();
+                            mParamsBeanList = ConverUtil.jsonToBeanList(point.getParams(), ParamsBean.class);
                             initGridViewData();
-                            for (VideosBean videosBean:mVideosBeanList){
-                                if (videosBean.getVideo_id().equals(String.valueOf(mVideoBean.getVideo_id()))){
+                            for (VideosBean videosBean : mVideosBeanList) {
+                                if (videosBean.getVideo_id().equals(String.valueOf(mVideoBean.getVideo_id()))) {
                                     mVideosIndex = mVideosBeanList.indexOf(videosBean);
                                     mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
                                     mTvVideoName.setText(mVideoName);
@@ -305,12 +281,13 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         //正式地址
         mCyVideo.setVideoPath(playUrl.toString());
         mCyVideo.setOnPreparedListener(this);
+        mCyVideo.setOnErrorListener(this);
         mCyVideo.requestFocus();
     }
 
     private void initGridViewData() {
 
-        mGridViewDataList= new ArrayList<>();
+        mGridViewDataList = new ArrayList<>();
         for (int i = 0; i < gridViewImage.length; i++) {
             gridViedBean = new GridViewBean();
             gridViedBean.setImage(gridViewImage[i]);
@@ -321,7 +298,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             gridViedBean.setTeacherID(mVideoBean.getTeacher_id());
             mGridViewDataList.add(gridViedBean);
         }
-        Log.e(TAG, "initGridViewData: "+mGridViewDataList.toString());
+        Log.e(TAG, "initGridViewData: " + mGridViewDataList.toString());
 
     }
 
@@ -341,8 +318,21 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             if (mIsShowPopWindow) {
                 mIsShowPopWindow = false;
                 mLlPlayPause.setVisibility(View.GONE);
+                if (Build.MANUFACTURER.equals("ZTE Corporation")) {
+                    mHandler.sendEmptyMessage(ZTE_PLAY_TIME);
+                }
                 mCyVideo.start();
                 return true;
+            }
+        } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+//            mCyVideo.pause();
+            if (mIsShowPopWindow) {
+
+            } else {
+                mCyVideo.pause();
+                mRlVideoTopBottom.setVisibility(View.VISIBLE);
+                mCyVideo.setFocusable(false);
+                mSeekBar.setFocusable(true);
             }
         }
 
@@ -352,11 +342,10 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     private void showPopWindow() {
         mHandler.sendEmptyMessage(SHOW_CONTROL);
         mIsShowPopWindow = true;
-        if (mCyVideo.isPlaying()) {
-            mCyVideo.pause();
-            if (Build.MANUFACTURER.equals("ZTE Corporation")) {
-                mHandler.removeMessages(ZTE_PLAY_TIME);
-            }
+        mCyVideo.pause();
+        Log.e(TAG, "showPopWindow: ");
+        if (Build.MANUFACTURER.equals("ZTE Corporation")) {
+            mHandler.removeMessages(ZTE_PLAY_TIME);
         }
         mLlPlayPause.setVisibility(View.VISIBLE);
         mCyVideo.setFocusable(false);
@@ -375,48 +364,16 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 switch (position) {
                     case 0:
-                        mVideosIndex--;
-                        if (mVideosIndex<mVideosBeanList.size()){
-                            Toast.makeText(PlayActivity.this, "已经是第一节了", Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("0")){
-                            mVideoName=mVideosBeanList.get(mVideosIndex).getVideo_name();
-                            mVideoID=mVideosBeanList.get(mVideosIndex).getVideo_id();
-                        }else if(mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")){
-                            Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
-                        }
-                        Toast.makeText(PlayActivity.this, "上一节", Toast.LENGTH_LONG).show();
+                        lastLesson();
                         break;
                     case 1:
-                        mVideosIndex++;
-                        if (mVideosIndex>mVideosBeanList.size()){
-                            Toast.makeText(PlayActivity.this, "已经是最后一节了！", Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("0")){
-                            mVideoName=mVideosBeanList.get(mVideosIndex).getVideo_name();
-                            mVideoID=mVideosBeanList.get(mVideosIndex).getVideo_id();
-                        }else if(mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")){
-                            Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
-                        }
-                        Toast.makeText(PlayActivity.this, "下一节", Toast.LENGTH_LONG).show();
+                        nextLesson();
                         break;
                     case 2:
-                        mLlPlayPause.setVisibility(View.GONE);
-                        mIvVideoPausePlay.setImageResource(R.drawable.pv_pause);
-                        mCyVideo.start();
-                        showHideControl();
-                        if (Build.MANUFACTURER.equals("ZTE Corporation")) {
-                            mHandler.sendEmptyMessage(ZTE_PLAY_TIME);
-                        }
+                        pausePlay();
                         break;
                     case 3:
-                        String videoId=mVideosBeanList.get(mVideosIndex).getVideo_id();
-                        String coursewareCount=mVideosBeanList.get(mVideosIndex).getCourseware_count();
-                        String pptUrl=StringUtils.format(PPT_URL,videoId,coursewareCount);
-                        PPTActivity.actionStartPPT(PlayActivity.this,pptUrl);
-                        mLlPlayPause.setVisibility(View.GONE);
+                        goPPTActivity();
                         break;
                     default:
                         break;
@@ -424,62 +381,92 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             }
         });
 
-        Log.e(TAG, "showPopWindow: "+mGridViewDataList.toString());
         GridViewAdapter gridViewAdapter = new GridViewAdapter(mGridViewDataList, PlayActivity.this);
         mGvPlayDwon.setAdapter(gridViewAdapter);
 
+        getPramasUrl();
+
+        mGvPlayDwon.setOnItemClickListener(this);
+    }
+
+    private void goPPTActivity() {
+        String videoId = mVideosBeanList.get(mVideosIndex).getVideo_id();
+        String coursewareCount = mVideosBeanList.get(mVideosIndex).getCourseware_count();
+        String pptUrl = StringUtils.format(PPT_URL, videoId, coursewareCount);
+        PPTActivity.actionStartPPT(PlayActivity.this, pptUrl);
+        mLlPlayPause.setVisibility(View.GONE);
+    }
+
+    private void pausePlay() {
+        mLlPlayPause.setVisibility(View.GONE);
+        mIvVideoPausePlay.setImageResource(R.drawable.pv_pause);
+        mCyVideo.start();
+        showHideControl();
+        if (Build.MANUFACTURER.equals("ZTE Corporation")) {
+            mHandler.sendEmptyMessage(ZTE_PLAY_TIME);
+        }
+    }
+
+    private void nextLesson() {
+        mVideosIndex++;
+        if (mVideosIndex > mVideosBeanList.size()) {
+            Toast.makeText(PlayActivity.this, "已经是最后一节了！", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("0")) {
+            mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
+            mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
+        } else if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
+            Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
+            DialogFragment dialogFragment = BuyDialogFragment.newInstance(1);
+            dialogFragment.show(getFragmentManager(), "buyDialog");
+        }
+    }
+
+    private void lastLesson() {
+        mVideosIndex--;
+        if (mVideosIndex < mVideosBeanList.size()) {
+            Toast.makeText(PlayActivity.this, "已经是第一节了", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("0")) {
+            mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
+            mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
+        } else if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
+            Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
+            BuyDialogFragment buyDialog=new BuyDialogFragment();
+            DialogFragment dialogFragment = BuyDialogFragment.newInstance(1);
+            dialogFragment.show(getFragmentManager(), "buyDialog");
+        }
+    }
+
+    private void getPramasUrl() {
         int type = Integer.valueOf(mPlayDataBean.getData().getProduct_type());
-        String gradeName=mPlayDataBean.getData().getGrade_name();
-        if (type==1){
+        String gradeName = mPlayDataBean.getData().getGrade_name();
+        if (type == 1) {
             if (gradeName.contains("年级")) {//小学
                 mPramasUrl = WEB_PARAMS_PRIMARY;
             } else if (gradeName.contains("初")) {//初中
                 mPramasUrl = WEB_PARAMS_JUNITOR;
             } else if (gradeName.contains("高")) {//高中
-                mPramasUrl=WEB_PARAMS_SENIOR;
+                mPramasUrl = WEB_PARAMS_SENIOR;
             }
         }
-
-        mGvPlayDwon.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                switch (position) {
-                    case 0:
-                        goParamsWeb(position);
-                        break;
-                    case 1:
-                        Toast.makeText(PlayActivity.this, "节", Toast.LENGTH_LONG).show();
-                        goParamsWeb(position);
-                        break;
-                    case 2:
-                        Toast.makeText(PlayActivity.this, "看", Toast.LENGTH_LONG).show();
-                        goParamsWeb(position);
-                        break;
-                    case 3:
-                        Toast.makeText(PlayActivity.this, "浏", Toast.LENGTH_LONG).show();
-                        goParamsWeb(position);
-                        break;
-                    default:
-                        break;
-                }
-            }
-        });
     }
 
     private void goParamsWeb(int position) {
-        String url = StringUtils.format(mPramasUrl,mGridViewDataList.get(position).getProductID(),
-                mGridViewDataList.get(position).getTeacherID(),mGridViewDataList.get(position).getContentId(),
-                mGridViewDataList.get(position).getPointId(),mVideoBean.getUser_id());
-        Log.e(TAG, "onItemClick: "+url);
-        CyLnXueXiJiaMainActivity.actionStartCyLnXueXiJiaMainActivity(PlayActivity.this,url);
+        String url = StringUtils.format(mPramasUrl, mGridViewDataList.get(position).getProductID(),
+                mGridViewDataList.get(position).getTeacherID(), mGridViewDataList.get(position).getContentId(),
+                mGridViewDataList.get(position).getPointId(), mVideoBean.getUser_id());
+        CyLnXueXiJiaMainActivity.actionStartCyLnXueXiJiaMainActivity(PlayActivity.this, url);
     }
 
     public static void actionStart(Context context, VideoBean videoID) {
-        Log.e(TAG, "actionStart: "+videoID.toString());
+        Log.e(TAG, "视频播放数据：" + videoID.toString());
         Intent intent = new Intent();
         intent.setClass(context, PlayActivity.class);
         Bundle bundle = new Bundle();
-        bundle.putSerializable("playData",videoID);
+        bundle.putSerializable("playData", videoID);
         intent.putExtras(bundle);
         context.startActivity(intent);
     }
@@ -495,10 +482,58 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         }
         //获取视频总时间
         mDuration = mp.getDuration();
+        mSeekBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
         mTvVideoTime.setText(LnUtils.generateTime(mDuration));//显示视频总时长
         mp.setOnCompletionListener(this);
         mp.setOnBufferingUpdateListener(this);
+        mp.setOnErrorListener(this);
     }
+
+    SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            if (progress > 0) {
+                if (fromUser) {
+
+                    mCyVideo.pause();
+                    if (progress > 99) {
+                        return;
+                    }
+//                    hidePlayerBottomLayoutHandler.removeMessages(0);
+//                    playerBottomLayout.setVisibility(View.VISIBLE);
+                    mCurrentTime = mDuration * progress / 100;
+                    mTvVideoPlayingTime.setText(LnUtils.generateTime(mCurrentTime));
+                    Log.e(TAG, "onProgressChanged: " + mCurrentTime);
+                    mCyVideo.seekTo((int) mCurrentTime);
+//                    playerBottomLayout.setVisibility(View.VISIBLE);
+                } else {
+//                    Log.e(TAG, "onProgressChanged: "+mCurrentTime);
+                    if (mCyVideo.isPlaying()) {
+
+                    } else {
+                        Log.e(TAG, "onProgressChanged: start");
+                        mCyVideo.start();
+                    }
+
+
+//                    if (playerBottomLayout.getVisibility() == View.VISIBLE) {
+//                        hidePlayerBottomLayoutHandler.removeMessages(0);
+//                        hidePlayerBottomLayoutHandler.sendEmptyMessageDelayed(0, 4000);
+//                    }
+                }
+            }
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+
+        }
+    };
 
     @Override
     public void onCompletion(MediaPlayer mp) {
@@ -524,6 +559,31 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         super.onDestroy();
         if (Build.MANUFACTURER.equals("ZTE Corporation")) {
             mHandler.removeMessages(ZTE_PLAY_TIME);
+        }
+    }
+
+    @Override
+    public boolean onError(MediaPlayer mp, int what, int extra) {
+        return true;
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        switch (position) {
+            case 0:
+                goParamsWeb(position);
+                break;
+            case 1:
+                goParamsWeb(position);
+                break;
+            case 2:
+                goParamsWeb(position);
+                break;
+            case 3:
+                goParamsWeb(position);
+                break;
+            default:
+                break;
         }
     }
 }

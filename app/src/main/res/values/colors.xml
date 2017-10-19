@@ -5,4 +5,11 @@
     <color name="colorAccent">#FF4081</color>
 
     <color name="transparent">#00000000</color>
+
+    <color name="exit_color">#EACB1C</color>
+
+    <color name="exit_border">#EFF9FC</color>
+
+    <!-- 30%透明度 -->
+    <color name="thirdty_black">#B3000000</color>
 </resources>

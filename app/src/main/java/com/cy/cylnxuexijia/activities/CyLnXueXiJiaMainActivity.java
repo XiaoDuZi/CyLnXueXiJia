@@ -1,15 +1,18 @@
 package com.cy.cylnxuexijia.activities;
 
+import android.app.DialogFragment;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -22,8 +25,11 @@ import com.cy.cylnxuexijia.bean.AuthenticationBean;
 import com.cy.cylnxuexijia.bean.ProductIdBean;
 import com.cy.cylnxuexijia.bean.UserLauncherBean;
 import com.cy.cylnxuexijia.bean.VideoBean;
+import com.cy.cylnxuexijia.fragments.BuyDialogFragment;
+import com.cy.cylnxuexijia.fragments.OrderDialogFragment;
 import com.cy.cylnxuexijia.fragments.SmallVideoFragment;
 import com.cy.cylnxuexijia.interfaces.ProductIDAuthenticationService;
+import com.cy.cylnxuexijia.tools.AIDLGetUserInfo;
 import com.cy.cylnxuexijia.tools.CyUtils;
 import com.cy.cylnxuexijia.tools.StringUtils;
 import com.google.gson.Gson;
@@ -44,7 +50,7 @@ import static com.cy.cylnxuexijia.comment.CommentInfo.SpId;
 import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_INDEX;
 import static com.cy.cylnxuexijia.comment.GoToOrder.goToOrderActivity;
 
-public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
+public class CyLnXueXiJiaMainActivity extends AppCompatActivity implements OrderDialogFragment.OrderDialogFragmentListener{
 
     private static final String TAG = "CyLnXueXiJiaMainActivit";
 
@@ -60,6 +66,7 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cy_ln_xue_xi_jia_main);
         ButterKnife.bind(this);
+        new AIDLGetUserInfo(CyLnXueXiJiaMainActivity.this); //AIDL获取用户信息
 
         initWebView();
 
@@ -157,6 +164,13 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         appCompatActivity.finish();
     }
 
+//    public static void actionStartCyLnXueXiJiaMainActivity(AppCompatActivity appCompatActivity,
+//                                                    String pruductID, String isFree){
+//        Intent intent = new Intent(appCompatActivity, CyLnXueXiJiaMainActivity.class);
+//        appCompatActivity.startActivity(intent);
+//        appCompatActivity.finish();
+//    }
+
     @Override
     protected void onDestroy() {
         if (mCyWebview != null) {
@@ -168,6 +182,11 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
             mCyWebview = null;
         }
         super.onDestroy();
+    }
+
+    @Override
+    public void getDataFrom_DialogFragment(String productID, String isFree) {
+        mCyWebview.loadUrl("http://120.76.221.222:90/buy.html?product_id=11&uid=458&backUrl=primaryterm.html%3Fproduct_id%3D11%26content_id%3D209%26point_id%3D87%26backUrl%3Dprimary.html%3FbackUrl%3Dindex.html%3FrowPos%3D0");
     }
 
     class JSAndroidInteractive {
@@ -242,13 +261,15 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         @JavascriptInterface //鉴权
         public void authentication(String name) {
             Log.e(TAG, "authentication: " + name);
-            ProductIdBean[] authBean = new Gson().fromJson(name, ProductIdBean[].class);
-            Log.e(TAG, "authentication: " + authBean[0].product_id);
+            final ProductIdBean[] authBean = new Gson().fromJson(name, ProductIdBean[].class);
+            Log.e(TAG, "authentication: " + authBean[0].getProduct_id()+":"+authBean[0].getIs_free());
 
             long time = System.currentTimeMillis();
             String riddle = CyUtils.MD5(time + PRODUCT_PROGRAM_KEY);
             String temptoken = UserLauncherBean.getUserLauncherBean().getUser32Key();
             final String productId = "240001489";
+            final String productIID=authBean[0].getProduct_id();
+            final String isFree=authBean[0].getIs_free();
 
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl("http://59.46.18.48:99/authbilling/")
@@ -270,7 +291,13 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
                     if (mResult.equals("0")) {
                         Toast.makeText(CyLnXueXiJiaMainActivity.this, "用户登陆状态异常", Toast.LENGTH_LONG).show();
                     } else if (mResult.equals("1")) {//1.跳转订购页面
-                        goToOrderActivity(CyLnXueXiJiaMainActivity.this, "你好辽宁", "你好吗？", productId);
+                        OrderDialogFragment orderDialogFragment=new OrderDialogFragment();
+//                        Bundle bundle=new Bundle();
+//                        bundle.putString("productID",productIID);
+//                        bundle.putString("isFree",isFree);
+                        DialogFragment dialogFragment = OrderDialogFragment.newInstance(productIID,isFree);
+//                        orderDialogFragment.setArguments(bundle);
+                        dialogFragment.show(getFragmentManager(), "orderDialog");
                     } else if (mResult.equals("2")) {//2.鉴权通过，跳转播放页面
 //                        getPlayUrl();
                     }
