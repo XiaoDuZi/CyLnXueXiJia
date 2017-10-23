@@ -38,4 +38,11 @@ public class PlayDataBean {
         this.data = data;
     }
 
+    @Override
+    public String toString() {
+        return "PlayDataBean{" +
+                "code=" + code +
+                ", data=" + data +
+                '}';
+    }
 }

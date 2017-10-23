@@ -167,6 +167,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         playDataCall.enqueue(new Callback<PlayDataBean>() {
             @Override
             public void onResponse(Call<PlayDataBean> call, Response<PlayDataBean> response) {
+                Log.e(TAG, "onResponse: "+response.toString());
                 mPlayDataBean = response.body();
                 List<TermsBean> listTerms = new ArrayList<TermsBean>();
                 listTerms = mPlayDataBean.getData().getTerms();

@@ -130,7 +130,7 @@ public class JSAndroidInteractive {
         Log.e(TAG, "authentication: "+name);
         Toast.makeText(mActivity,"调取了Authentication",Toast.LENGTH_LONG).show();
         ProductIdBean[] authBean=new Gson().fromJson(name, ProductIdBean[].class);
-        Log.e(TAG, "authentication: "+authBean[0].product_id);
+        Log.e(TAG, "authentication: "+authBean[0].getProduct_id());
         long time = System.currentTimeMillis();
         String riddle = CyUtils.MD5(time +PRODUCT_PROGRAM_KEY);
         String temptoken = UserLauncherBean.getUserLauncherBean().getUser32Key();
