@@ -13,5 +13,5 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:textSize="24sp"
-        android:text="跳转WebView"/>
+        android:text="跳转学习佳首页"/>
 </RelativeLayout>

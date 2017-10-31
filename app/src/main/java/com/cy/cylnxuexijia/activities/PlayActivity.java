@@ -27,18 +27,20 @@ import android.widget.VideoView;
 
 import com.cy.cylnxuexijia.R;
 import com.cy.cylnxuexijia.adapters.GridViewAdapter;
+import com.cy.cylnxuexijia.bean.AuthenticationBean;
 import com.cy.cylnxuexijia.bean.GridViewBean;
 import com.cy.cylnxuexijia.bean.ParamsBean;
 import com.cy.cylnxuexijia.bean.PlayDataBean;
 import com.cy.cylnxuexijia.bean.PlayUrlBean;
 import com.cy.cylnxuexijia.bean.PointsBean;
 import com.cy.cylnxuexijia.bean.TermsBean;
+import com.cy.cylnxuexijia.bean.UserLauncherBean;
 import com.cy.cylnxuexijia.bean.VideoBean;
 import com.cy.cylnxuexijia.bean.VideosBean;
 import com.cy.cylnxuexijia.fragments.BuyDialogFragment;
-import com.cy.cylnxuexijia.fragments.OrderDialogFragment;
 import com.cy.cylnxuexijia.interfaces.PlayDataService;
 import com.cy.cylnxuexijia.interfaces.PlayUrlService;
+import com.cy.cylnxuexijia.interfaces.ProductIDAuthenticationService;
 import com.cy.cylnxuexijia.tools.ConverUtil;
 import com.cy.cylnxuexijia.tools.CyUtils;
 import com.cy.cylnxuexijia.tools.LnUtils;
@@ -55,11 +57,14 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import static com.cy.cylnxuexijia.comment.CommentInfo.AUTHENTICATION_URL;
 import static com.cy.cylnxuexijia.comment.CommentInfo.BASEURL;
 import static com.cy.cylnxuexijia.comment.CommentInfo.PLAY_KEY;
 import static com.cy.cylnxuexijia.comment.CommentInfo.PPT_URL;
+import static com.cy.cylnxuexijia.comment.CommentInfo.PRODUCT_PROGRAM_KEY;
 import static com.cy.cylnxuexijia.comment.CommentInfo.SpId;
 import static com.cy.cylnxuexijia.comment.CommentInfo.Type;
+import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_INDEX;
 import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_PARAMS_JUNITOR;
 import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_PARAMS_PRIMARY;
 import static com.cy.cylnxuexijia.comment.CommentInfo.WEB_PARAMS_SENIOR;
@@ -142,9 +147,14 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         if (intent == null) {
             return;
         }
-        mVideoBean = (VideoBean) intent.getSerializableExtra("playData");
+        try {
+            mVideoBean = (VideoBean) intent.getSerializableExtra("playData");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-//        mVideoID = String.valueOf(videoBean.getVideo_id());
+        mVideoID = mVideoBean.getVideo_id();
+        Log.e(TAG, "onCreate: "+mVideoID);
         mVideoID = "MOV58649e4ad9461c0f2388572a";
 
         getPlayUrl();
@@ -157,13 +167,16 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
     private void initDatas() {
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://120.76.221.222:90/")
+                .baseUrl(WEB_INDEX)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
+
+        Log.e(TAG, "initDatas: "+mVideoBean.toString());
+
         PlayDataService playDataService = retrofit.create(PlayDataService.class);
-        Call<PlayDataBean> playDataCall = playDataService.getPlayData(String.valueOf(mVideoBean.getUser_id()),
-                String.valueOf(mVideoBean.getProduct_id()), String.valueOf(mVideoBean.getContent_id()));
+        Call<PlayDataBean> playDataCall = playDataService.getPlayData(mVideoBean.getUser_id(),
+                mVideoBean.getProduct_id(),mVideoBean.getContent_id());
         playDataCall.enqueue(new Callback<PlayDataBean>() {
             @Override
             public void onResponse(Call<PlayDataBean> call, Response<PlayDataBean> response) {
@@ -175,13 +188,13 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 mParamsBeanList = new ArrayList<ParamsBean>();
                 for (TermsBean term : listTerms) {
                     for (PointsBean point : term.getPoints()) {
-                        if (point.getPoint_id().equals(String.valueOf(mVideoBean.getPoint_id()))) {
+                        if (point.getPoint_id().equals(mVideoBean.getPoint_id())) {
                             Log.e(TAG, "onResponse:------------------------------------------------- ");
                             mVideosBeanList = point.getVideos();
                             mParamsBeanList = ConverUtil.jsonToBeanList(point.getParams(), ParamsBean.class);
                             initGridViewData();
                             for (VideosBean videosBean : mVideosBeanList) {
-                                if (videosBean.getVideo_id().equals(String.valueOf(mVideoBean.getVideo_id()))) {
+                                if (videosBean.getVideo_id().equals(mVideoBean.getVideo_id())) {
                                     mVideosIndex = mVideosBeanList.indexOf(videosBean);
                                     mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
                                     mTvVideoName.setText(mVideoName);
@@ -419,9 +432,84 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
         } else if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
             Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
-            DialogFragment dialogFragment = BuyDialogFragment.newInstance(1);
-            dialogFragment.show(getFragmentManager(), "buyDialog");
+            getLiaoNingAuthentication(mVideoBean.getProduct_id());
         }
+    }
+
+    private void getLiaoNingAuthentication(String product_id) {
+
+//        mVideoBeen = new Gson().fromJson(name, VideoBean[].class);
+
+//        Log.e(TAG, "getLiaoNingAuthentication: "+mVideoBeen[0]);
+
+        long time = System.currentTimeMillis();
+        String riddle = CyUtils.MD5(time + PRODUCT_PROGRAM_KEY);
+        String temptoken = UserLauncherBean.getUserLauncherBean().getUser32Key();
+        final String productId = "240001488";
+//        mProductIID = mVideoBeen[0].getProduct_id();
+//            mIsFree = mVideoBeen[0].getIs_free();
+//            mUseID = mVideoBeen[0].getUser_id();
+//            mContentID = mVideoBeen[0].getContent_id();
+//            mPointID = mVideoBeen[0].getPoint_id();
+//            mVideoID = mVideoBeen[0].getVideo_id();
+
+//        Log.e(TAG, "authentication: "+ mUseID +":"+ mContentID);
+
+//            initDatas(mUseID,mProductIID, mContentID, mPointID);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(AUTHENTICATION_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        ProductIDAuthenticationService productIDAuthenticationService = retrofit.create(ProductIDAuthenticationService.class);
+        Call<AuthenticationBean> authenticationBeanCall = productIDAuthenticationService.getResult(
+                temptoken, productId, SpId, time, riddle);
+
+        authenticationBeanCall.enqueue(new Callback<AuthenticationBean>() {
+            @Override
+            public void onResponse(Call<AuthenticationBean> call, Response<AuthenticationBean> response) {
+                Log.e(TAG, "onResponse:response " + response.toString());
+                AuthenticationBean authenticationBean = new AuthenticationBean();
+                authenticationBean = response.body();
+                authenticationBean.getResult();
+                String mResult = authenticationBean.getResult();
+                if (mResult.equals("1")){
+                    DialogFragment dialogFragment = BuyDialogFragment.newInstance(mVideoBean.getProduct_id(),
+                            mVideoBean.getUser_id(),mPlayDataBean.getData().getProduct_type(),mVideoBean.getContent_id(),
+                            mVideoBean.getPoint_id(), mPlayDataBean.getData().getGrade_name(),mVideoBean.getVideo_id());
+                    dialogFragment.show(getFragmentManager(), "buyDialog");
+                }else if (mResult.equals("2")){
+                    mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
+                    mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
+                    //播放视频。。。。。。。。。。
+                }
+
+                Log.e(TAG, "onResponse: "+mResult);
+//                    if (mResult.equals("0")) {
+//                        Toast.makeText(CyLnXueXiJiaMainActivity.this, "用户登陆状态异常", Toast.LENGTH_LONG).show();
+//                    } else if (mResult.equals("1")) {//1.跳转订购页面
+//                        if (mIsFree.equals("")&&mPointID.equals("")){
+//                            mCyWebview.loadUrl(mOrderUrl);
+//                        }else {
+//                            DialogFragment dialogFragment = OrderDialogFragment.newInstance(mProductIID, mIsFree);
+//                            dialogFragment.show(getFragmentManager(), "orderDialog");
+//                        }
+//                    } else if (mResult.equals("2")) {//2.鉴权通过，跳转播放页面
+//                        if (mIsFree.equals("")&&mPointID.equals("")){
+//                            Log.e(TAG, "onResponse: "+mOrderUrl);
+//                            mCyWebview.loadUrl(mOrderUrl);
+//                        }else {
+//                            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this,mVideoBeen[0]);
+//                        }
+//                    }
+            }
+
+            @Override
+            public void onFailure(Call<AuthenticationBean> call, Throwable t) {
+                Log.e(TAG, "onFailure: " + "访问网络失败！");
+            }
+        });
     }
 
     private void lastLesson() {
@@ -435,9 +523,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
         } else if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
             Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
-            BuyDialogFragment buyDialog=new BuyDialogFragment();
-            DialogFragment dialogFragment = BuyDialogFragment.newInstance(1);
-            dialogFragment.show(getFragmentManager(), "buyDialog");
+            getLiaoNingAuthentication(mVideoBean.getProduct_id());
         }
     }
 
@@ -456,18 +542,19 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     private void goParamsWeb(int position) {
+        CyLnXueXiJiaMainActivity.CYXUEXIJIAMAIN_INSTANCE.finish();
         String url = StringUtils.format(mPramasUrl, mGridViewDataList.get(position).getProductID(),
                 mGridViewDataList.get(position).getTeacherID(), mGridViewDataList.get(position).getContentId(),
                 mGridViewDataList.get(position).getPointId(), mVideoBean.getUser_id());
         CyLnXueXiJiaMainActivity.actionStartCyLnXueXiJiaMainActivity(PlayActivity.this, url);
+        finish();
     }
 
-    public static void actionStart(Context context, VideoBean videoID) {
-        Log.e(TAG, "视频播放数据：" + videoID.toString());
+    public static void actionStart(Context context, VideoBean videoBean) {
         Intent intent = new Intent();
         intent.setClass(context, PlayActivity.class);
         Bundle bundle = new Bundle();
-        bundle.putSerializable("playData", videoID);
+        bundle.putSerializable("playData", videoBean);
         intent.putExtras(bundle);
         context.startActivity(intent);
     }

@@ -20,6 +20,7 @@ public class GoToOrder {
 
     public static void goToOrderActivity(AppCompatActivity appCompatActivity, String videoName,
                                          String desc, String contentID) {
+        Log.e(TAG, "goToOrderActivity: "+contentID );
         //第一个参数是Activity所在的package包名，第二个参数是完整的Class类名（包括包路径）
         ComponentName componentName = new ComponentName("com.widgetdo.ottboxforgx",
                 "com.widgetdo.ottboxforgx.activity.OrderListOutwardActivity");
