@@ -56,4 +56,14 @@ public class ParamsBean {
     public void setPoint_name(String point_name) {
         this.point_name = point_name;
     }
+
+    @Override
+    public String toString() {
+        return "ParamsBean{" +
+                "product_id='" + product_id + '\'' +
+                ", content_id='" + content_id + '\'' +
+                ", point_id='" + point_id + '\'' +
+                ", point_name='" + point_name + '\'' +
+                '}';
+    }
 }

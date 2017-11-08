@@ -153,9 +153,9 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             e.printStackTrace();
         }
 
-        mVideoID = mVideoBean.getVideo_id();
-        Log.e(TAG, "onCreate: "+mVideoID);
-        mVideoID = "MOV58649e4ad9461c0f2388572a";
+        mVideoID = mVideoBean.getVideo_url();
+        Log.e(TAG, ";;;;;;;;;;;;;;;;;;;;;'[: "+mVideoID);
+//        mVideoID = "MOV58649e4ad9461c0f2388572a";
 
         getPlayUrl();
 
@@ -163,6 +163,21 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
         initDatas();
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 
     private void initDatas() {
@@ -184,6 +199,8 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 mPlayDataBean = response.body();
                 List<TermsBean> listTerms = new ArrayList<TermsBean>();
                 listTerms = mPlayDataBean.getData().getTerms();
+                if (listTerms==null)
+                    return;
                 mVideosBeanList = new ArrayList<VideosBean>();
                 mParamsBeanList = new ArrayList<ParamsBean>();
                 for (TermsBean term : listTerms) {
@@ -300,9 +317,16 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     private void initGridViewData() {
-
+        Log.e(TAG, "initGridViewData: "+mParamsBeanList.toString());
         mGridViewDataList = new ArrayList<>();
-        for (int i = 0; i < gridViewImage.length; i++) {
+        int paramsSize;
+        if (mParamsBeanList.size()>=gridViewImage.length){
+            paramsSize=gridViewImage.length;
+        }else {
+           paramsSize=mParamsBeanList.size();
+        }
+        for (int i = 0; i < paramsSize; i++) {
+            Log.e(TAG, "initGridViewData: "+i);
             gridViedBean = new GridViewBean();
             gridViedBean.setImage(gridViewImage[i]);
             gridViedBean.setTitle(mParamsBeanList.get(i).getPoint_name());
@@ -404,6 +428,8 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     private void goPPTActivity() {
+        int playTime=mCyVideo.getCurrentPosition();
+        Log.e(TAG, "goPPTActivity: "+playTime);
         String videoId = mVideosBeanList.get(mVideosIndex).getVideo_id();
         String coursewareCount = mVideosBeanList.get(mVideosIndex).getCourseware_count();
         String pptUrl = StringUtils.format(PPT_URL, videoId, coursewareCount);

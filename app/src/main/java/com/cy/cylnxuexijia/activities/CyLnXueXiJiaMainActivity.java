@@ -198,6 +198,9 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         if (currentURL.indexOf("backUrl=") != -1) {
             try {
                 String subUrl = currentURL.substring(currentURL.indexOf("backUrl=") + "backUrl=".length(), currentURL.length());
+                if (subUrl.indexOf("index.xml")!=-1){
+                    subUrl=subUrl+"&backUrl=index.html";
+                }
                 String encodeUrl = URLDecoder.decode(subUrl, "utf-8");
                 endUrl = WEB_INDEX + encodeUrl;
             } catch (NullPointerException e) {
@@ -295,7 +298,11 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
                     FragmentManager fragmentManager = getSupportFragmentManager();
                     FragmentTransaction transation = fragmentManager.beginTransaction();
                     transation.remove(mSmallVideoFragment);
-                    transation.commit();
+                    try {
+                        transation.commit();
+                    } catch (IllegalStateException e) {
+                        e.printStackTrace();
+                    }
                     mFlCySmallVideo.setVisibility(View.GONE);
                 }
             });
@@ -398,7 +405,7 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
             String riddle = CyUtils.MD5(time + PRODUCT_PROGRAM_KEY);
             String temptoken = UserLauncherBean.getUserLauncherBean().getUser32Key();
             final String productId = "240001488";
-            mProductIID = mVideoBeen[0].getProduct_id();
+            mProductIID = mVideoBeen[0].getVideo_url();
 //            mIsFree = mVideoBeen[0].getIs_free();
 //            mUseID = mVideoBeen[0].getUser_id();
 //            mContentID = mVideoBeen[0].getContent_id();
