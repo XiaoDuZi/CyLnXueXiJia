@@ -36,4 +36,9 @@ public class SplashActivity extends AppCompatActivity {
 //        Intent intent=new Intent(SplashActivity.this,PlayActivity.class);
         startActivity(intent);
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
 }

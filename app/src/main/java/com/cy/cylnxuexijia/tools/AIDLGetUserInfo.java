@@ -84,7 +84,4 @@ public class AIDLGetUserInfo {
 //        intent.setComponent(new ComponentName("com.widgetdo.ottboxforgx.service", "com.widgetdo.ottboxforgx.service.UserInfoService"));
         mActivity.bindService(intent, this.conn, BIND_AUTO_CREATE);
     }
-
-
-
 }

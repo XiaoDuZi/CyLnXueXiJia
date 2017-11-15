@@ -7,15 +7,18 @@ import com.google.gson.Gson;
  */
 
 public class VideosBean {
+
     /**
      * is_free : 0
-     * courseware_count : 12
-     * video_id : 257
-     * video_name : 声母、韵母的读音、形及写法
+     * courseware_count : 2
+     * video_url : MOV5844dd95d9465a1ca894e6f8
+     * video_id : 4219
+     * video_name : 天花乱坠
      */
 
     private String is_free;
     private String courseware_count;
+    private String video_url;
     private String video_id;
     private String video_name;
 
@@ -40,6 +43,14 @@ public class VideosBean {
         this.courseware_count = courseware_count;
     }
 
+    public String getVideo_url() {
+        return video_url;
+    }
+
+    public void setVideo_url(String video_url) {
+        this.video_url = video_url;
+    }
+
     public String getVideo_id() {
         return video_id;
     }
@@ -61,6 +72,7 @@ public class VideosBean {
         return "VideosBean{" +
                 "is_free='" + is_free + '\'' +
                 ", courseware_count='" + courseware_count + '\'' +
+                ", video_url='" + video_url + '\'' +
                 ", video_id='" + video_id + '\'' +
                 ", video_name='" + video_name + '\'' +
                 '}';

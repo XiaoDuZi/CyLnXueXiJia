@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -32,7 +33,9 @@ import com.cy.cylnxuexijia.bean.GridViewBean;
 import com.cy.cylnxuexijia.bean.ParamsBean;
 import com.cy.cylnxuexijia.bean.PlayDataBean;
 import com.cy.cylnxuexijia.bean.PlayUrlBean;
+import com.cy.cylnxuexijia.bean.PlayVideoDataBean;
 import com.cy.cylnxuexijia.bean.PointsBean;
+import com.cy.cylnxuexijia.bean.SpecialPlayDataBean;
 import com.cy.cylnxuexijia.bean.TermsBean;
 import com.cy.cylnxuexijia.bean.UserLauncherBean;
 import com.cy.cylnxuexijia.bean.VideoBean;
@@ -40,7 +43,9 @@ import com.cy.cylnxuexijia.bean.VideosBean;
 import com.cy.cylnxuexijia.fragments.BuyDialogFragment;
 import com.cy.cylnxuexijia.interfaces.PlayDataService;
 import com.cy.cylnxuexijia.interfaces.PlayUrlService;
+import com.cy.cylnxuexijia.interfaces.PlayVideoDataService;
 import com.cy.cylnxuexijia.interfaces.ProductIDAuthenticationService;
+import com.cy.cylnxuexijia.interfaces.SpecialPlayDataService;
 import com.cy.cylnxuexijia.tools.ConverUtil;
 import com.cy.cylnxuexijia.tools.CyUtils;
 import com.cy.cylnxuexijia.tools.LnUtils;
@@ -107,7 +112,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     private GridViewBean gridViedBean;
     private boolean mShowPauseWindow = false;
     private String mPlatform;
-    private String mVideoID;
+    private String mVideo_Url;
     private boolean mIsShowPopWindow = false;
     private long mDuration;
     private long mCurrentTime;
@@ -130,12 +135,15 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         }
     });
     private VideoBean mVideoBean;
-    private List<VideosBean> mVideosBeanList;
+    private List<VideosBean> mVideosBeanList = new ArrayList<VideosBean>();
+    ;
     private List<ParamsBean> mParamsBeanList;
     private int mVideosIndex;
     private String mVideoName;
     private PlayDataBean mPlayDataBean;
     private String mPramasUrl;
+    private Call<PlayDataBean> mPlayDataCall;
+    private Call<SpecialPlayDataBean> mSpecialPlayDataCall;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -153,11 +161,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             e.printStackTrace();
         }
 
-        mVideoID = mVideoBean.getVideo_url();
-        Log.e(TAG, ";;;;;;;;;;;;;;;;;;;;;'[: "+mVideoID);
-//        mVideoID = "MOV58649e4ad9461c0f2388572a";
-
-        getPlayUrl();
+        getVideo_Url();
 
         showHideControl();
 
@@ -165,68 +169,150 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
+    private void getVideo_Url() {
+        if (mVideoBean.getUser_id().equals("") || mVideoBean.getProduct_id().equals("")
+                || mVideoBean.getContent_id().equals(""))
+            return;
+        Retrofit retrofit = getRetrofit();
+        PlayVideoDataService playVideoDataService = retrofit.create(PlayVideoDataService.class);
+        Call<PlayVideoDataBean> playVideoDataBeanCall = playVideoDataService.getPlayVideoData(
+                mVideoBean.getPlatformId(), mVideoBean.getUser_id(), mVideoBean.getVideo_id(),
+                mVideoBean.getProduct_id(), mVideoBean.getContent_id());
+        playVideoDataBeanCall.enqueue(new Callback<PlayVideoDataBean>() {
+            @Override
+            public void onResponse(Call<PlayVideoDataBean> call, Response<PlayVideoDataBean> response) {
+                PlayVideoDataBean playVideoDataBean = new PlayVideoDataBean();
+                Log.e(TAG, "onResponse: " + response.toString());
+                playVideoDataBean = response.body();
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-    }
+                mVideo_Url = playVideoDataBean.getData().getVideo_url();
+//                String
+                getPlayUrl();
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+            }
+
+            @Override
+            public void onFailure(Call<PlayVideoDataBean> call, Throwable t) {
+
+            }
+        });
     }
 
     private void initDatas() {
-        Retrofit retrofit = new Retrofit.Builder()
+        if (mVideoBean.getUser_id().equals("") || mVideoBean.getProduct_id().equals("")
+                || mVideoBean.getContent_id().equals(""))
+            return;
+
+        Retrofit retrofit = getRetrofit();
+
+        judgeSpecialClass(retrofit);
+
+        Log.e(TAG, "initDatas: " + mVideoBean.toString());
+    }
+
+    @NonNull
+    private Retrofit getRetrofit() {
+        return new Retrofit.Builder()
                 .baseUrl(WEB_INDEX)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
+    }
 
+    /**
+     * 判断专题 还是同步课
+     *
+     * @param retrofit
+     */
+    private void judgeSpecialClass(Retrofit retrofit) {
+        if (mVideoBean.getContent_id().equals(mVideoBean.getSpecial_id())) {
+            SpecialPlayDataService specialPlayDataService = retrofit.create(SpecialPlayDataService.class);
+            mSpecialPlayDataCall = specialPlayDataService.getPlayData(mVideoBean.getUser_id(),
+                    mVideoBean.getProduct_id());
+            mSpecialPlayDataCall.enqueue(new Callback<SpecialPlayDataBean>() {
+                @Override
+                public void onResponse(Call<SpecialPlayDataBean> call, Response<SpecialPlayDataBean> response) {
+                    Log.e(TAG, "onResponse: " + response.toString());
+                    SpecialPlayDataBean specialPlayDataBean = new SpecialPlayDataBean();
+                    specialPlayDataBean = response.body();
 
-        Log.e(TAG, "initDatas: "+mVideoBean.toString());
-
-        PlayDataService playDataService = retrofit.create(PlayDataService.class);
-        Call<PlayDataBean> playDataCall = playDataService.getPlayData(mVideoBean.getUser_id(),
-                mVideoBean.getProduct_id(),mVideoBean.getContent_id());
-        playDataCall.enqueue(new Callback<PlayDataBean>() {
-            @Override
-            public void onResponse(Call<PlayDataBean> call, Response<PlayDataBean> response) {
-                Log.e(TAG, "onResponse: "+response.toString());
-                mPlayDataBean = response.body();
-                List<TermsBean> listTerms = new ArrayList<TermsBean>();
-                listTerms = mPlayDataBean.getData().getTerms();
-                if (listTerms==null)
-                    return;
-                mVideosBeanList = new ArrayList<VideosBean>();
-                mParamsBeanList = new ArrayList<ParamsBean>();
-                for (TermsBean term : listTerms) {
-                    for (PointsBean point : term.getPoints()) {
-                        if (point.getPoint_id().equals(mVideoBean.getPoint_id())) {
-                            Log.e(TAG, "onResponse:------------------------------------------------- ");
-                            mVideosBeanList = point.getVideos();
-                            mParamsBeanList = ConverUtil.jsonToBeanList(point.getParams(), ParamsBean.class);
-                            initGridViewData();
-                            for (VideosBean videosBean : mVideosBeanList) {
-                                if (videosBean.getVideo_id().equals(mVideoBean.getVideo_id())) {
-                                    mVideosIndex = mVideosBeanList.indexOf(videosBean);
-                                    mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
-                                    mTvVideoName.setText(mVideoName);
+                    List<SpecialPlayDataBean.DataBean.GradesBean> gradesBeanList = new ArrayList<SpecialPlayDataBean.DataBean.GradesBean>();
+                    gradesBeanList = specialPlayDataBean.getData().getGrades();
+                    for (SpecialPlayDataBean.DataBean.GradesBean gradesBean : gradesBeanList) {
+                        for (SpecialPlayDataBean.DataBean.GradesBean.SubjectsBean subjectsBean : gradesBean.getSubjects()) {
+                            for (SpecialPlayDataBean.DataBean.GradesBean.SubjectsBean.TermsBean termsBean : subjectsBean.getTerms()) {
+                                for (SpecialPlayDataBean.DataBean.GradesBean.SubjectsBean.TermsBean.PointsBean pointsBean : termsBean.getPoints()) {
+                                    if (pointsBean.getPoint_id().equals(mVideoBean.getPoint_id())) {
+                                        mVideosBeanList = pointsBean.getVideos();
+                                        for (VideosBean videosBean : mVideosBeanList) {
+                                            if (videosBean.getVideo_id().equals(mVideoBean.getVideo_id())) {
+                                                mVideosIndex = mVideosBeanList.indexOf(videosBean);
+                                                mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
+                                                mTvVideoName.setText(mVideoName);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<PlayDataBean> call, Throwable t) {
-                Log.e(TAG, "onFailure: ");
-            }
-        });
+                @Override
+                public void onFailure(Call<SpecialPlayDataBean> call, Throwable t) {
+
+                }
+            });
+
+        } else {
+            PlayDataService playDataService = retrofit.create(PlayDataService.class);
+            mPlayDataCall = playDataService.getPlayData(mVideoBean.getUser_id(),
+                    mVideoBean.getProduct_id(), mVideoBean.getContent_id());
+            mPlayDataCall.enqueue(new Callback<PlayDataBean>() {
+                @Override
+                public void onResponse(Call<PlayDataBean> call, Response<PlayDataBean> response) {
+                    Log.e(TAG, "onResponse: " + response.toString());
+                    mPlayDataBean = response.body();
+                    if (mPlayDataBean.getData() == null)
+                        return;
+//                if (null==mPlayDataBean.getData().getTerms()||mPlayDataBean.getData().getTerms().equals("null")){
+////                    SpecialPlayDataBean specialPlayDataBean=new SpecialPlayDataBean();
+////                    specialPlayDataBean=response.body();
+//                }
+
+                    Log.e(TAG, "onResponse: " + mPlayDataBean.toString());
+                    List<TermsBean> listTerms = new ArrayList<TermsBean>();
+
+                    listTerms = mPlayDataBean.getData().getTerms();
+//                    mVideosBeanList = new ArrayList<VideosBean>();
+                    mParamsBeanList = new ArrayList<ParamsBean>();
+                    for (TermsBean term : listTerms) {
+                        for (PointsBean point : term.getPoints()) {
+                            if (point.getPoint_id().equals(mVideoBean.getPoint_id())) {
+                                Log.e(TAG, "onResponse:------------------------------------------------- ");
+                                mVideosBeanList = point.getVideos();
+                                if (point.getParams()==null)
+                                    return;
+                                mParamsBeanList = ConverUtil.jsonToBeanList(point.getParams(), ParamsBean.class);
+                                initGridViewData();
+                                for (VideosBean videosBean : mVideosBeanList) {
+                                    if (videosBean.getVideo_id().equals(mVideoBean.getVideo_id())) {
+                                        mVideosIndex = mVideosBeanList.indexOf(videosBean);
+                                        mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
+                                        mTvVideoName.setText(mVideoName);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<PlayDataBean> call, Throwable t) {
+                    Log.e(TAG, "onFailure: ");
+                }
+            });
+        }
+
     }
 
     private void showHideControl() {
@@ -243,7 +329,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
 
     private void playVideo(PlayUrlBean lnPlayUrlBean) {
-
+        Log.e(TAG, "playVideo: " + lnPlayUrlBean.getPlayUrl());
         try {
             if (lnPlayUrlBean.getPlayUrl() == null)
                 return;
@@ -286,8 +372,9 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 .build();
         PlayUrlService lnPlayUrlService = retrofit.create(PlayUrlService.class);
 
+        Log.e(TAG, "getPlayUrl: " + mVideo_Url);
         Call<PlayUrlBean> call = lnPlayUrlService.getPlayUrlInfo(Type,
-                mTime, mRiddle, mPlatform, SpId, mVideoID + "", "", "");
+                mTime, mRiddle, mPlatform, SpId, mVideo_Url + "", "", "");
         call.enqueue(new Callback<PlayUrlBean>() {
             @Override
             public void onResponse(Call<PlayUrlBean> call, Response<PlayUrlBean> response) {
@@ -309,6 +396,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     private void beginPlayVideo(Uri playUrl) {
+        Log.e(TAG, "beginPlayVideo: ");
         //正式地址
         mCyVideo.setVideoPath(playUrl.toString());
         mCyVideo.setOnPreparedListener(this);
@@ -317,16 +405,16 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     private void initGridViewData() {
-        Log.e(TAG, "initGridViewData: "+mParamsBeanList.toString());
+        Log.e(TAG, "initGridViewData: " + mParamsBeanList.toString());
         mGridViewDataList = new ArrayList<>();
         int paramsSize;
-        if (mParamsBeanList.size()>=gridViewImage.length){
-            paramsSize=gridViewImage.length;
-        }else {
-           paramsSize=mParamsBeanList.size();
+        if (mParamsBeanList.size() >= gridViewImage.length) {
+            paramsSize = gridViewImage.length;
+        } else {
+            paramsSize = mParamsBeanList.size();
         }
         for (int i = 0; i < paramsSize; i++) {
-            Log.e(TAG, "initGridViewData: "+i);
+            Log.e(TAG, "initGridViewData: " + i);
             gridViedBean = new GridViewBean();
             gridViedBean.setImage(gridViewImage[i]);
             gridViedBean.setTitle(mParamsBeanList.get(i).getPoint_name());
@@ -419,6 +507,9 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             }
         });
 
+
+        if (mGridViewDataList == null)
+            return;
         GridViewAdapter gridViewAdapter = new GridViewAdapter(mGridViewDataList, PlayActivity.this);
         mGvPlayDwon.setAdapter(gridViewAdapter);
 
@@ -428,10 +519,11 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     private void goPPTActivity() {
-        int playTime=mCyVideo.getCurrentPosition();
-        Log.e(TAG, "goPPTActivity: "+playTime);
+        int playTime = mCyVideo.getCurrentPosition();
+        Log.e(TAG, "goPPTActivity: " + playTime);
         String videoId = mVideosBeanList.get(mVideosIndex).getVideo_id();
         String coursewareCount = mVideosBeanList.get(mVideosIndex).getCourseware_count();
+        Log.e(TAG, "goPPTActivity: " + videoId + ":" + coursewareCount);
         String pptUrl = StringUtils.format(PPT_URL, videoId, coursewareCount);
         PPTActivity.actionStartPPT(PlayActivity.this, pptUrl);
         mLlPlayPause.setVisibility(View.GONE);
@@ -447,18 +539,49 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         }
     }
 
-    private void nextLesson() {
-        mVideosIndex++;
-        if (mVideosIndex > mVideosBeanList.size()) {
-            Toast.makeText(PlayActivity.this, "已经是最后一节了！", Toast.LENGTH_LONG).show();
+    private void lastLesson() {
+        Log.e(TAG, "lastLesson: " + mVideosIndex);
+        mVideosIndex--;
+        Log.e(TAG, "lastLesson: " + mVideosIndex + ":" + mVideosBeanList.size());
+        if (mVideosIndex <= 0) {
+            Toast.makeText(PlayActivity.this, "已经是第一节了", Toast.LENGTH_LONG).show();
             return;
         }
+        playOrOrderNext(mVideosIndex);
+        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")){
+            mVideosIndex++;
+        }
+    }
+
+    /**
+     * 点击上一节，下一节时跳转下一节或者订购
+     *
+     * @param videosIndex
+     */
+    private void playOrOrderNext(int videosIndex) {
+
         if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("0")) {
             mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
-            mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
+            mVideo_Url = mVideosBeanList.get(mVideosIndex).getVideo_url();
+            mTvVideoName.setText(mVideoName);
+            getPlayUrl();
+            pausePlay();
         } else if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
             Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
             getLiaoNingAuthentication(mVideoBean.getProduct_id());
+        }
+
+    }
+
+    private void nextLesson() {
+        mVideosIndex++;
+        if (mVideosIndex >= mVideosBeanList.size()) {
+            Toast.makeText(PlayActivity.this, "已经是最后一节了！", Toast.LENGTH_LONG).show();
+            return;
+        }
+        playOrOrderNext(mVideosIndex);
+        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")){
+            mVideosIndex--;
         }
     }
 
@@ -477,7 +600,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
 //            mUseID = mVideoBeen[0].getUser_id();
 //            mContentID = mVideoBeen[0].getContent_id();
 //            mPointID = mVideoBeen[0].getPoint_id();
-//            mVideoID = mVideoBeen[0].getVideo_id();
+//            mVideo_Url = mVideoBeen[0].getVideo_id();
 
 //        Log.e(TAG, "authentication: "+ mUseID +":"+ mContentID);
 
@@ -500,18 +623,19 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 authenticationBean = response.body();
                 authenticationBean.getResult();
                 String mResult = authenticationBean.getResult();
-                if (mResult.equals("1")){
+                if (mResult.equals("1")) {
                     DialogFragment dialogFragment = BuyDialogFragment.newInstance(mVideoBean.getProduct_id(),
-                            mVideoBean.getUser_id(),mPlayDataBean.getData().getProduct_type(),mVideoBean.getContent_id(),
-                            mVideoBean.getPoint_id(), mPlayDataBean.getData().getGrade_name(),mVideoBean.getVideo_id());
+                            mVideoBean.getUser_id(), mPlayDataBean.getData().getProduct_type(), mVideoBean.getContent_id(),
+                            mVideoBean.getPoint_id(), mPlayDataBean.getData().getGrade_name(), mVideoBean.getVideo_id());
                     dialogFragment.show(getFragmentManager(), "buyDialog");
-                }else if (mResult.equals("2")){
+                } else if (mResult.equals("2")) {
                     mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
-                    mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
-                    //播放视频。。。。。。。。。。
+                    mVideo_Url = mVideosBeanList.get(mVideosIndex).getVideo_url();
+                    mTvVideoName.setText(mVideoName);
+                    getPlayUrl();
                 }
 
-                Log.e(TAG, "onResponse: "+mResult);
+                Log.e(TAG, "onResponse: " + mResult);
 //                    if (mResult.equals("0")) {
 //                        Toast.makeText(CyLnXueXiJiaMainActivity.this, "用户登陆状态异常", Toast.LENGTH_LONG).show();
 //                    } else if (mResult.equals("1")) {//1.跳转订购页面
@@ -538,20 +662,6 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         });
     }
 
-    private void lastLesson() {
-        mVideosIndex--;
-        if (mVideosIndex < mVideosBeanList.size()) {
-            Toast.makeText(PlayActivity.this, "已经是第一节了", Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("0")) {
-            mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
-            mVideoID = mVideosBeanList.get(mVideosIndex).getVideo_id();
-        } else if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
-            Toast.makeText(PlayActivity.this, "订购去", Toast.LENGTH_LONG).show();
-            getLiaoNingAuthentication(mVideoBean.getProduct_id());
-        }
-    }
 
     private void getPramasUrl() {
         int type = Integer.valueOf(mPlayDataBean.getData().getProduct_type());
@@ -700,4 +810,6 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 break;
         }
     }
+
+
 }

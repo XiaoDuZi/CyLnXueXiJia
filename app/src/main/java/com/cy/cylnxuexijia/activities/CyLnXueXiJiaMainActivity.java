@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
@@ -21,6 +22,7 @@ import android.widget.Toast;
 
 import com.cy.cylnxuexijia.R;
 import com.cy.cylnxuexijia.bean.AuthenticationBean;
+import com.cy.cylnxuexijia.bean.OrderBean;
 import com.cy.cylnxuexijia.bean.UserLauncherBean;
 import com.cy.cylnxuexijia.bean.VideoBean;
 import com.cy.cylnxuexijia.comment.GoToOrder;
@@ -33,6 +35,8 @@ import com.google.gson.Gson;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -139,7 +143,6 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
                         PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this, mVideoBeen[0]);
                     } else {
                         mCyWebview.loadUrl(mBackUrl);
-
                     }
                 } else if (resultCode == 2) {
 
@@ -270,17 +273,13 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-//    @Override
-//    public void getDataFrom_DialogFragment(String productID, String isFree) {
-//        mCyWebview.loadUrl(mOrderUrl);
-//    }
-
     class JSAndroidInteractive {
 
         private static final String TAG = "JSAndroidInteractive";
 
         Context mContxt;
         private String mResult;
+        private String mCard_num;
 
         public JSAndroidInteractive(Context contxt) {
             mContxt = contxt;
@@ -327,10 +326,10 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
 
         @JavascriptInterface //sdk17版本以上加上注解
         public String getKeyNo() {
-            String card_num = UserLauncherBean.getInstance().getUserName();
-            Toast.makeText(CyLnXueXiJiaMainActivity.this, "调取了KeyNo:" + card_num,
+            mCard_num = UserLauncherBean.getInstance().getUserName();
+            Toast.makeText(CyLnXueXiJiaMainActivity.this, "调取了KeyNo:" + mCard_num,
                     Toast.LENGTH_LONG).show();
-            return card_num;
+            return mCard_num;
         }
 
         @JavascriptInterface //sdk17版本以上加上注解
@@ -348,43 +347,56 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public void getLiaoNingPay(String order) {
-            Log.e(TAG, "getLiaoNingPay: " + ACTIVITY_SIGN);
-//            Log.e(TAG, "getLiaoNingPay: "+order);
+            final OrderBean[] orderBean=new Gson().fromJson(order,OrderBean[].class);
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mPayBackUrl = mCyWebview.getUrl();
-                    if (mPayBackUrl.indexOf("backUrl=") != -1) {
-                        try {
-                            String subUrl = mPayBackUrl.substring(mPayBackUrl.indexOf("backUrl=") + "backUrl=".length(), mPayBackUrl.length());
-                            String encodeUrl = URLDecoder.decode(subUrl, "utf-8");
-                            if (ACTIVITY_SIGN.equals("PlayActivity")) {
-                                ACTIVITY_SIGN = "ACTIVITY_PLAY_ORDER";
-                            } else if (ACTIVITY_SIGN.equals("MainActivity") || ACTIVITY_SIGN.equals("ACTIVITY_MAIN_ORDER")
-                                    || ACTIVITY_SIGN.equals("ACTIVITY_MAIN_LIST_ORDER") || ACTIVITY_SIGN.equals("ACTIVITY_PLAY_ORDER")) {
-                                if (encodeUrl.length() < ORDER_JUNITOR.length()) {
-                                    ACTIVITY_SIGN = "ACTIVITY_MAIN_ORDER";
-                                } else {
-                                    ACTIVITY_SIGN = "ACTIVITY_MAIN_LIST_ORDER";
-                                }
-                            }
-                            Log.e(TAG, "getLiaoNingPayrun: " + ACTIVITY_SIGN);
-                            mBackUrl = WEB_INDEX + encodeUrl;
-                        } catch (NullPointerException e) {
-                            e.printStackTrace();
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    orderEndUrl();
 //                    testOrderPlay();
-                    GoToOrder.goToOrderActivity(CyLnXueXiJiaMainActivity.this, "学习佳", "学习佳帮助孩子们好好学习"
-                            , "240001488");
+                    String sporderNum = getSporderNum(orderBean[0]);
+                    GoToOrder.goToOrderActivity(CyLnXueXiJiaMainActivity.this,orderBean[0].getProduct_name(),
+                            orderBean[0].getBuy_tips(), "240001488",sporderNum);
                 }
             });
 
 
         }
 
+        @NonNull
+        private String getSporderNum(OrderBean orderBean) {
+            SimpleDateFormat data=new SimpleDateFormat("yyyyMMddhhmmss");
+            String sporderNum=mCard_num+data.format(new Date())+ orderBean.getProduct_id();
+            Log.d(TAG, "订购号："+sporderNum);
+            return sporderNum;
+        }
+
+        /**
+         * 区分从哪里的订购，在订购结束后跳转到对应的页面
+         */
+        private void orderEndUrl() {
+            mPayBackUrl = mCyWebview.getUrl();
+            if (mPayBackUrl.indexOf("backUrl=") != -1) {
+                try {
+                    String subUrl = mPayBackUrl.substring(mPayBackUrl.indexOf("backUrl=") + "backUrl=".length(), mPayBackUrl.length());
+                    String encodeUrl = URLDecoder.decode(subUrl, "utf-8");
+                    if (ACTIVITY_SIGN.equals("PlayActivity")) {
+                        ACTIVITY_SIGN = "ACTIVITY_PLAY_ORDER"; //播放视频时，点击下一节，订购
+                    } else if (ACTIVITY_SIGN.equals("MainActivity") || ACTIVITY_SIGN.equals("ACTIVITY_MAIN_ORDER")
+                            || ACTIVITY_SIGN.equals("ACTIVITY_MAIN_LIST_ORDER") || ACTIVITY_SIGN.equals("ACTIVITY_PLAY_ORDER")) {
+                        if (encodeUrl.length() < ORDER_JUNITOR.length()) {
+                            ACTIVITY_SIGN = "ACTIVITY_MAIN_ORDER"; //
+                        } else {
+                            ACTIVITY_SIGN = "ACTIVITY_MAIN_LIST_ORDER"; //视频列表处点击订购
+                        }
+                    }
+                    mBackUrl = WEB_INDEX + encodeUrl;
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
 
         @JavascriptInterface //鉴权
@@ -433,6 +445,7 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
                     authenticationBean = response.body();
                     authenticationBean.getResult();
                     mResult = authenticationBean.getResult();
+                    Log.e(TAG, "onResponse: "+mResult);
 //                    if (mResult.equals("0")) {
 //                        Toast.makeText(CyLnXueXiJiaMainActivity.this, "用户登陆状态异常", Toast.LENGTH_LONG).show();
 //                    } else if (mResult.equals("1")) {//1.跳转订购页面
@@ -460,19 +473,19 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         }
     }
 
-    private void testOrderPlay() {
-        if (ACTIVITY_SIGN.equals("ACTIVITY_PLAY_ORDER")) {
-            mCyWebview.loadUrl(mBackUrl);
-            Log.e(TAG, "testOrderPlay: "+mPlayVideoBeen.toString());
-            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this,mPlayVideoBeen);
-        } else if (ACTIVITY_SIGN.equals("ACTIVITY_MAIN_LIST_ORDER")) {
-            mCyWebview.loadUrl(mBackUrl);
-            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this, mVideoBeen[0]);
-        } else {
-            mCyWebview.loadUrl(mBackUrl);
-
-        }
-    }
+//    private void testOrderPlay() {
+//        if (ACTIVITY_SIGN.equals("ACTIVITY_PLAY_ORDER")) {
+//            mCyWebview.loadUrl(mBackUrl);
+//            Log.e(TAG, "testOrderPlay: "+mPlayVideoBeen.toString());
+//            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this,mPlayVideoBeen);
+//        } else if (ACTIVITY_SIGN.equals("ACTIVITY_MAIN_LIST_ORDER")) {
+//            mCyWebview.loadUrl(mBackUrl);
+//            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this, mVideoBeen[0]);
+//        } else {
+//            mCyWebview.loadUrl(mBackUrl);
+//
+//        }
+//    }
 
 //    private void initDatas(String useID, String productIID, String contentID, String pointID) {
 //

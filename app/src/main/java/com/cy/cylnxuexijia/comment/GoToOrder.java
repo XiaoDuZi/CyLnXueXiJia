@@ -19,7 +19,7 @@ public class GoToOrder {
     }
 
     public static void goToOrderActivity(AppCompatActivity appCompatActivity, String videoName,
-                                         String desc, String contentID) {
+                                         String desc, String contentID,String sporderNum) {
         Log.e(TAG, "goToOrderActivity: "+contentID );
         //第一个参数是Activity所在的package包名，第二个参数是完整的Class类名（包括包路径）
         ComponentName componentName = new ComponentName("com.widgetdo.ottboxforgx",
@@ -32,6 +32,7 @@ public class GoToOrder {
         intent.putExtra("contentid", contentID);
         intent.putExtra("spid",SpId);
         intent.putExtra("contenttype", "2");//视频类型：1：视频；2：游戏
+        intent.putExtra("spordernum",sporderNum);
         intent.putExtras(intent);
         appCompatActivity.startActivityForResult(intent, 0);
     }
