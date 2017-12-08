@@ -28,6 +28,7 @@ import android.widget.VideoView;
 
 import com.cy.cylnxuexijia.R;
 import com.cy.cylnxuexijia.adapters.GridViewAdapter;
+import com.cy.cylnxuexijia.bean.AddHostroyBean;
 import com.cy.cylnxuexijia.bean.AuthenticationBean;
 import com.cy.cylnxuexijia.bean.GridViewBean;
 import com.cy.cylnxuexijia.bean.ParamsBean;
@@ -41,6 +42,8 @@ import com.cy.cylnxuexijia.bean.UserLauncherBean;
 import com.cy.cylnxuexijia.bean.VideoBean;
 import com.cy.cylnxuexijia.bean.VideosBean;
 import com.cy.cylnxuexijia.fragments.BuyDialogFragment;
+import com.cy.cylnxuexijia.fragments.PPTFragment;
+import com.cy.cylnxuexijia.interfaces.AddPlayHostoryService;
 import com.cy.cylnxuexijia.interfaces.PlayDataService;
 import com.cy.cylnxuexijia.interfaces.PlayUrlService;
 import com.cy.cylnxuexijia.interfaces.PlayVideoDataService;
@@ -144,6 +147,17 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     private String mPramasUrl;
     private Call<PlayDataBean> mPlayDataCall;
     private Call<SpecialPlayDataBean> mSpecialPlayDataCall;
+    private boolean mShowPPT=false;
+
+    interface PPTBackListener{
+        public void pptBack();
+    }
+
+    PPTBackListener mPPTBackListener;
+
+    public void setPPTBackListener(PPTBackListener PPTBackListener) {
+        mPPTBackListener = PPTBackListener;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -173,7 +187,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         if (mVideoBean.getUser_id().equals("") || mVideoBean.getProduct_id().equals("")
                 || mVideoBean.getContent_id().equals(""))
             return;
-        Retrofit retrofit = getRetrofit();
+        Retrofit retrofit = getRetrofit(WEB_INDEX);
         PlayVideoDataService playVideoDataService = retrofit.create(PlayVideoDataService.class);
         Call<PlayVideoDataBean> playVideoDataBeanCall = playVideoDataService.getPlayVideoData(
                 mVideoBean.getPlatformId(), mVideoBean.getUser_id(), mVideoBean.getVideo_id(),
@@ -186,9 +200,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 playVideoDataBean = response.body();
 
                 mVideo_Url = playVideoDataBean.getData().getVideo_url();
-//                String
                 getPlayUrl();
-
             }
 
             @Override
@@ -203,7 +215,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 || mVideoBean.getContent_id().equals(""))
             return;
 
-        Retrofit retrofit = getRetrofit();
+        Retrofit retrofit = getRetrofit(WEB_INDEX);
 
         judgeSpecialClass(retrofit);
 
@@ -211,9 +223,9 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     @NonNull
-    private Retrofit getRetrofit() {
+    private Retrofit getRetrofit(String url) {
         return new Retrofit.Builder()
-                .baseUrl(WEB_INDEX)
+                .baseUrl(url)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
     }
@@ -231,7 +243,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             mSpecialPlayDataCall.enqueue(new Callback<SpecialPlayDataBean>() {
                 @Override
                 public void onResponse(Call<SpecialPlayDataBean> call, Response<SpecialPlayDataBean> response) {
-                    Log.e(TAG, "onResponse: " + response.toString());
+                    Log.e(TAG, "onResponse: 推荐位" + response.toString());
                     SpecialPlayDataBean specialPlayDataBean = new SpecialPlayDataBean();
                     specialPlayDataBean = response.body();
 
@@ -243,6 +255,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                                 for (SpecialPlayDataBean.DataBean.GradesBean.SubjectsBean.TermsBean.PointsBean pointsBean : termsBean.getPoints()) {
                                     if (pointsBean.getPoint_id().equals(mVideoBean.getPoint_id())) {
                                         mVideosBeanList = pointsBean.getVideos();
+                                        Log.e(TAG, "onResponse: "+mVideosBeanList);
                                         for (VideosBean videosBean : mVideosBeanList) {
                                             if (videosBean.getVideo_id().equals(mVideoBean.getVideo_id())) {
                                                 mVideosIndex = mVideosBeanList.indexOf(videosBean);
@@ -270,7 +283,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
             mPlayDataCall.enqueue(new Callback<PlayDataBean>() {
                 @Override
                 public void onResponse(Call<PlayDataBean> call, Response<PlayDataBean> response) {
-                    Log.e(TAG, "onResponse: " + response.toString());
+                    Log.e(TAG, "onResponse:普通 " + response.toString());
                     mPlayDataBean = response.body();
                     if (mPlayDataBean.getData() == null)
                         return;
@@ -290,7 +303,8 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                             if (point.getPoint_id().equals(mVideoBean.getPoint_id())) {
                                 Log.e(TAG, "onResponse:------------------------------------------------- ");
                                 mVideosBeanList = point.getVideos();
-                                if (point.getParams()==null)
+                                Log.e(TAG, "onResponse:mVideosBeanList "+mVideosBeanList.toString());
+                                if (point.getParams() == null)
                                     return;
                                 mParamsBeanList = ConverUtil.jsonToBeanList(point.getParams(), ParamsBean.class);
                                 initGridViewData();
@@ -366,10 +380,8 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         if (mPlatform == null) {
             mPlatform = "GD";
         }
-        Retrofit retrofit = new Retrofit.Builder()        //使用Retrofit网络框架进行访问网络
-                .baseUrl(BASEURL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+
+        Retrofit retrofit = getRetrofit(BASEURL);
         PlayUrlService lnPlayUrlService = retrofit.create(PlayUrlService.class);
 
         Log.e(TAG, "getPlayUrl: " + mVideo_Url);
@@ -441,21 +453,27 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 mLlPlay.setBackgroundResource(R.drawable.video_pause_border);
             }
         } else if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (mIsShowPopWindow) {
-                mIsShowPopWindow = false;
-                mLlPlayPause.setVisibility(View.GONE);
-                if (Build.MANUFACTURER.equals("ZTE Corporation")) {
-                    mHandler.sendEmptyMessage(ZTE_PLAY_TIME);
+            if (!mShowPPT){
+                if (mIsShowPopWindow) {
+                    mIsShowPopWindow = false;
+                    mLlPlayPause.setVisibility(View.GONE);
+                    if (Build.MANUFACTURER.equals("ZTE Corporation")) {
+                        mHandler.sendEmptyMessage(ZTE_PLAY_TIME);
+                    }
+                    mCyVideo.start();
+                    return true;
+                }else {
+                    addPlayHostory(mVideosIndex);
                 }
-                mCyVideo.start();
-                return true;
             }
         } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-//            mCyVideo.pause();
+            mCyVideo.pause();
             if (mIsShowPopWindow) {
-
+                showHideControl();
+//                mRlVideoTopBottom.setVisibility(View.VISIBLE);
+                mSeekBar.setFocusable(true);
             } else {
-                mCyVideo.pause();
+//                mCyVideo.pause();
                 mRlVideoTopBottom.setVisibility(View.VISIBLE);
                 mCyVideo.setFocusable(false);
                 mSeekBar.setFocusable(true);
@@ -463,6 +481,14 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         }
 
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT){
+            mCyVideo.start();
+        }
+        return super.onKeyUp(keyCode, event);
     }
 
     private void showPopWindow() {
@@ -499,7 +525,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                         pausePlay();
                         break;
                     case 3:
-                        goPPTActivity();
+                        goPPTFragment();
                         break;
                     default:
                         break;
@@ -518,19 +544,29 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         mGvPlayDwon.setOnItemClickListener(this);
     }
 
-    private void goPPTActivity() {
-        int playTime = mCyVideo.getCurrentPosition();
-        Log.e(TAG, "goPPTActivity: " + playTime);
-        String videoId = mVideosBeanList.get(mVideosIndex).getVideo_id();
-        String coursewareCount = mVideosBeanList.get(mVideosIndex).getCourseware_count();
-        Log.e(TAG, "goPPTActivity: " + videoId + ":" + coursewareCount);
+    private void goPPTFragment() {
+        Log.e(TAG, "goPPTFragment: "+mVideosIndex);
+        Log.e(TAG, "goPPTFragment: "+mVideosBeanList.toString());
+        mShowPPT=true;
+        String videoId;
+        String coursewareCount;
+        if (mVideosBeanList.size()==0){
+            videoId = mVideoBean.getVideo_id();
+            coursewareCount = mVideoBean.getCourseware_count();
+        }else {
+            videoId = mVideosBeanList.get(mVideosIndex).getVideo_id();
+            coursewareCount = mVideosBeanList.get(mVideosIndex).getCourseware_count();
+        }
+
         String pptUrl = StringUtils.format(PPT_URL, videoId, coursewareCount);
-        PPTActivity.actionStartPPT(PlayActivity.this, pptUrl);
-        mLlPlayPause.setVisibility(View.GONE);
+        DialogFragment dialogFragment=PPTFragment.newInstance(pptUrl);
+        dialogFragment.show(getFragmentManager(),"ppt");
+//        mLlPlayPause.setVisibility(View.GONE);
     }
 
     private void pausePlay() {
         mLlPlayPause.setVisibility(View.GONE);
+        mSeekBar.setFocusable(true);
         mIvVideoPausePlay.setImageResource(R.drawable.pv_pause);
         mCyVideo.start();
         showHideControl();
@@ -545,10 +581,11 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         Log.e(TAG, "lastLesson: " + mVideosIndex + ":" + mVideosBeanList.size());
         if (mVideosIndex <= 0) {
             Toast.makeText(PlayActivity.this, "已经是第一节了", Toast.LENGTH_LONG).show();
+            mVideosIndex=0;
             return;
         }
-        playOrOrderNext(mVideosIndex);
-        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")){
+        playOrOrderNext("last",mVideosIndex);
+        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
             mVideosIndex++;
         }
     }
@@ -558,7 +595,18 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
      *
      * @param videosIndex
      */
-    private void playOrOrderNext(int videosIndex) {
+    private void playOrOrderNext(String lastOrNest,int videosIndex) {
+        if ("last".equals(lastOrNest)){
+            Log.e(TAG, "playOrOrderNext: =========");
+            videosIndex++;
+            //加入播放历史纪录
+            addPlayHostory(videosIndex);
+        }else if ("next".equals(lastOrNest)){
+            Log.e(TAG, "playOrOrderNext: ========");
+            videosIndex--;
+            //加入播放历史纪录
+            addPlayHostory(videosIndex);
+        }
 
         if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("0")) {
             mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
@@ -577,39 +625,24 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         mVideosIndex++;
         if (mVideosIndex >= mVideosBeanList.size()) {
             Toast.makeText(PlayActivity.this, "已经是最后一节了！", Toast.LENGTH_LONG).show();
+            mVideosIndex=mVideosBeanList.size()-1;
             return;
         }
-        playOrOrderNext(mVideosIndex);
-        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")){
+        Log.e(TAG, "nextLesson: ==============");
+        playOrOrderNext("next",mVideosIndex);
+        if (mVideosBeanList.get(mVideosIndex).getIs_free().equals("1")) {
             mVideosIndex--;
         }
     }
 
     private void getLiaoNingAuthentication(String product_id) {
 
-//        mVideoBeen = new Gson().fromJson(name, VideoBean[].class);
-
-//        Log.e(TAG, "getLiaoNingAuthentication: "+mVideoBeen[0]);
-
         long time = System.currentTimeMillis();
         String riddle = CyUtils.MD5(time + PRODUCT_PROGRAM_KEY);
         String temptoken = UserLauncherBean.getUserLauncherBean().getUser32Key();
         final String productId = "240001488";
-//        mProductIID = mVideoBeen[0].getProduct_id();
-//            mIsFree = mVideoBeen[0].getIs_free();
-//            mUseID = mVideoBeen[0].getUser_id();
-//            mContentID = mVideoBeen[0].getContent_id();
-//            mPointID = mVideoBeen[0].getPoint_id();
-//            mVideo_Url = mVideoBeen[0].getVideo_id();
 
-//        Log.e(TAG, "authentication: "+ mUseID +":"+ mContentID);
-
-//            initDatas(mUseID,mProductIID, mContentID, mPointID);
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(AUTHENTICATION_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        Retrofit retrofit = getRetrofit(AUTHENTICATION_URL);
 
         ProductIDAuthenticationService productIDAuthenticationService = retrofit.create(ProductIDAuthenticationService.class);
         Call<AuthenticationBean> authenticationBeanCall = productIDAuthenticationService.getResult(
@@ -623,7 +656,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 authenticationBean = response.body();
                 authenticationBean.getResult();
                 String mResult = authenticationBean.getResult();
-                if (mResult.equals("1")) {
+                if (mResult.equals("0")) {
                     DialogFragment dialogFragment = BuyDialogFragment.newInstance(mVideoBean.getProduct_id(),
                             mVideoBean.getUser_id(), mPlayDataBean.getData().getProduct_type(), mVideoBean.getContent_id(),
                             mVideoBean.getPoint_id(), mPlayDataBean.getData().getGrade_name(), mVideoBean.getVideo_id());
@@ -634,25 +667,7 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                     mTvVideoName.setText(mVideoName);
                     getPlayUrl();
                 }
-
                 Log.e(TAG, "onResponse: " + mResult);
-//                    if (mResult.equals("0")) {
-//                        Toast.makeText(CyLnXueXiJiaMainActivity.this, "用户登陆状态异常", Toast.LENGTH_LONG).show();
-//                    } else if (mResult.equals("1")) {//1.跳转订购页面
-//                        if (mIsFree.equals("")&&mPointID.equals("")){
-//                            mCyWebview.loadUrl(mOrderUrl);
-//                        }else {
-//                            DialogFragment dialogFragment = OrderDialogFragment.newInstance(mProductIID, mIsFree);
-//                            dialogFragment.show(getFragmentManager(), "orderDialog");
-//                        }
-//                    } else if (mResult.equals("2")) {//2.鉴权通过，跳转播放页面
-//                        if (mIsFree.equals("")&&mPointID.equals("")){
-//                            Log.e(TAG, "onResponse: "+mOrderUrl);
-//                            mCyWebview.loadUrl(mOrderUrl);
-//                        }else {
-//                            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this,mVideoBeen[0]);
-//                        }
-//                    }
             }
 
             @Override
@@ -678,12 +693,38 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
     }
 
     private void goParamsWeb(int position) {
+
+        addPlayHostory(mVideosIndex);
+
         CyLnXueXiJiaMainActivity.CYXUEXIJIAMAIN_INSTANCE.finish();
         String url = StringUtils.format(mPramasUrl, mGridViewDataList.get(position).getProductID(),
                 mGridViewDataList.get(position).getTeacherID(), mGridViewDataList.get(position).getContentId(),
                 mGridViewDataList.get(position).getPointId(), mVideoBean.getUser_id());
         CyLnXueXiJiaMainActivity.actionStartCyLnXueXiJiaMainActivity(PlayActivity.this, url);
         finish();
+    }
+
+    private void addPlayHostory(int videosIndex) {
+//   /log/466/4220/78/232/100
+        Log.e(TAG, "addPlayHostory: --------------------------------------");
+        Log.e(TAG, "addPlayHostory: /n UserID:"+UserLauncherBean.getUserLauncherBean().getUserName()+
+                        "productID:"+mVideoBean.getProduct_id()+"ContetnId:"+mVideoBean.getContent_id()+
+                        "Video_Url"+mVideosBeanList.get(videosIndex).getVideo_id()+"mCurrentTime:"+mCurrentTime);
+        Retrofit retrofit=getRetrofit(WEB_INDEX);
+        AddPlayHostoryService addPlayHostoryService=retrofit.create(AddPlayHostoryService.class);
+        Call<AddHostroyBean> addHostroyCall=addPlayHostoryService.addHostory(mVideoBean.getUser_id(),
+                mVideoBean.getProduct_id(), mVideosBeanList.get(videosIndex).getVideo_id(),mVideoBean.getContent_id(),mCurrentTime);
+        addHostroyCall.enqueue(new Callback<AddHostroyBean>() {
+            @Override
+            public void onResponse(Call<AddHostroyBean> call, Response<AddHostroyBean> response) {
+                Log.e(TAG, "onResponse:添加播放历史纪录成功 "+response.toString());
+            }
+
+            @Override
+            public void onFailure(Call<AddHostroyBean> call, Throwable t) {
+                Log.e(TAG, "onFailure: 添加播放记录失败！");
+            }
+        });
     }
 
     public static void actionStart(Context context, VideoBean videoBean) {
@@ -718,17 +759,17 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             if (progress > 0) {
                 if (fromUser) {
-
-                    mCyVideo.pause();
-                    if (progress > 99) {
+//                    mCyVideo.pause();
+                    progress++;
+                    if (progress >=100) {
                         return;
                     }
 //                    hidePlayerBottomLayoutHandler.removeMessages(0);
 //                    playerBottomLayout.setVisibility(View.VISIBLE);
                     mCurrentTime = mDuration * progress / 100;
                     mTvVideoPlayingTime.setText(LnUtils.generateTime(mCurrentTime));
-                    Log.e(TAG, "onProgressChanged: " + mCurrentTime);
                     mCyVideo.seekTo((int) mCurrentTime);
+                    mCyVideo.start();
 //                    playerBottomLayout.setVisibility(View.VISIBLE);
                 } else {
 //                    Log.e(TAG, "onProgressChanged: "+mCurrentTime);
@@ -736,10 +777,8 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
 
                     } else {
                         Log.e(TAG, "onProgressChanged: start");
-                        mCyVideo.start();
+//                        mCyVideo.start();
                     }
-
-
 //                    if (playerBottomLayout.getVisibility() == View.VISIBLE) {
 //                        hidePlayerBottomLayoutHandler.removeMessages(0);
 //                        hidePlayerBottomLayoutHandler.sendEmptyMessageDelayed(0, 4000);
@@ -810,6 +849,5 @@ public class PlayActivity extends AppCompatActivity implements MediaPlayer.OnPre
                 break;
         }
     }
-
 
 }

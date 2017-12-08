@@ -20,6 +20,8 @@ public class CommentInfo {
     //现网
 //    public static String AUTHENTICATION_URL = "http://3a.99tv.com.cn:99/authbilling/";
 
+    public static String PLAY_RECORD_BASEURL = WEB_INDEX + "CQTVWeb_edu/tvutvgo/";
+
     //sp ID：
     public static String SpId = "CQGH";
 

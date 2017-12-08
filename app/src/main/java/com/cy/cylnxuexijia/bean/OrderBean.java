@@ -13,12 +13,14 @@ public class OrderBean {
      * product_id : 82
      * buy_tips : 123
      * product_name : 一年级
+     * show_price : 299元/月
      */
 
     private int user_id;
     private String product_id;
     private String buy_tips;
     private String product_name;
+    private String show_price;
 
     public static OrderBean objectFromData(String str) {
 
@@ -57,6 +59,14 @@ public class OrderBean {
         this.product_name = product_name;
     }
 
+    public String getShow_price() {
+        return show_price;
+    }
+
+    public void setShow_price(String show_price) {
+        this.show_price = show_price;
+    }
+
     @Override
     public String toString() {
         return "OrderBean{" +
@@ -64,6 +74,7 @@ public class OrderBean {
                 ", product_id='" + product_id + '\'' +
                 ", buy_tips='" + buy_tips + '\'' +
                 ", product_name='" + product_name + '\'' +
+                ", show_price='" + show_price + '\'' +
                 '}';
     }
 }

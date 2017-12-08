@@ -18,17 +18,17 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
-import android.widget.Toast;
 
 import com.cy.cylnxuexijia.R;
+import com.cy.cylnxuexijia.bean.AddOrderInfoBean;
 import com.cy.cylnxuexijia.bean.AuthenticationBean;
 import com.cy.cylnxuexijia.bean.OrderBean;
 import com.cy.cylnxuexijia.bean.UserLauncherBean;
 import com.cy.cylnxuexijia.bean.VideoBean;
 import com.cy.cylnxuexijia.comment.GoToOrder;
 import com.cy.cylnxuexijia.fragments.SmallVideoFragment;
+import com.cy.cylnxuexijia.interfaces.AddOrderInfoService;
 import com.cy.cylnxuexijia.interfaces.ProductIDAuthenticationService;
-import com.cy.cylnxuexijia.tools.AIDLGetUserInfo;
 import com.cy.cylnxuexijia.tools.CyUtils;
 import com.cy.cylnxuexijia.tools.StringUtils;
 import com.google.gson.Gson;
@@ -82,6 +82,40 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
                 } catch (NullPointerException e) {
                     e.printStackTrace();
                 }
+            } else if (msg.what == 1) {
+                Log.e(TAG, "handleMessage: " + ACTIVITY_SIGN);
+                if ("ACTIVITY_MAIN_LIST_ORDER".equals(ACTIVITY_SIGN)) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mCyWebview.loadUrl("javascript:getListAuthenticationStatus(1)");
+                        }
+                    });
+
+                } else if ("ACTIVITY_MAIN_ORDER".equals(ACTIVITY_SIGN)) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mCyWebview.loadUrl("javascript:getAuthenticationStatus(1)");
+                        }
+                    });
+                }
+            } else if (msg.what == 2) {
+                if ("ACTIVITY_MAIN_LIST_ORDER".equals(ACTIVITY_SIGN)) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mCyWebview.loadUrl("javascript:getListAuthenticationStatus(2)");
+                        }
+                    });
+                }else if ("ACTIVITY_MAIN_ORDERp".equals(ACTIVITY_SIGN)){
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mCyWebview.loadUrl("javascript:getAuthenticationStatus(2)");
+                        }
+                    });
+                }
             }
             return false;
         }
@@ -90,13 +124,16 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
     private String ACTIVITY_SIGN;
     private String mPayBackUrl;
     private VideoBean mPlayVideoBeen;
+    private String mProductPrice;
+    private String mCard_num;
+    private String mSporderNum;
+    private String mOrderTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cy_ln_xue_xi_jia_main);
         ButterKnife.bind(this);
-//        new AIDLGetUserInfo(CyLnXueXiJiaMainActivity.this); //AIDL获取用户信息
         CYXUEXIJIAMAIN_INSTANCE = this;
         initWebView();
 
@@ -119,8 +156,6 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
             url = url.replace("#", "?");
             mCyWebview.loadUrl(url);
         }
-
-//        initSmallVideoFragment();
     }
 
     /**
@@ -131,27 +166,56 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Log.e(TAG, "1：订购成功；2：订购失败；----------"+resultCode);
+        Log.e(TAG, "1：订购成功；2：订购失败；----------" + resultCode);
         switch (requestCode) {
             case 0:
                 if (resultCode == 1) {//返回
                     if (ACTIVITY_SIGN.equals("ACTIVITY_PLAY_ORDER")) {
                         mCyWebview.loadUrl(mBackUrl);
-                        PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this,mPlayVideoBeen);
-                    } else if (ACTIVITY_SIGN.equals("ACTIVITY_MAIN_LIST_ORDER")) {
+                        PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this, mPlayVideoBeen);
+                    } else if ("ACTIVITY_MAIN_LIST_ORDER".equals(ACTIVITY_SIGN) || "".equals(ACTIVITY_SIGN)) {
                         mCyWebview.loadUrl(mBackUrl);
                         PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this, mVideoBeen[0]);
                     } else {
                         mCyWebview.loadUrl(mBackUrl);
                     }
+                    addLocalOrderResult(0);
                 } else if (resultCode == 2) {
-
+                    addLocalOrderResult(1);
                 }
 
                 break;
             default:
                 break;
         }
+    }
+
+    private void addLocalOrderResult(int i) {
+        Retrofit retrofit = getRetrofit(WEB_INDEX);
+        AddOrderInfoService addOrderInfoService = retrofit.create(AddOrderInfoService.class);
+        Call<AddOrderInfoBean> stringCall = addOrderInfoService.addOrderInfo(mCard_num, mSporderNum, "null",
+                mProductIID, mProductPrice, mOrderTime, 0, i);
+        stringCall.enqueue(new Callback<AddOrderInfoBean>() {
+            @Override
+            public void onResponse(Call<AddOrderInfoBean> call, Response<AddOrderInfoBean> response) {
+                AddOrderInfoBean addOrderInfoBean = response.body();
+                Log.e(TAG, "onResponse: " + response);
+                Log.e(TAG, "onResponse: " + response.body());
+            }
+
+            @Override
+            public void onFailure(Call<AddOrderInfoBean> call, Throwable t) {
+                Log.e(TAG, "onResponse:订购添加失败 ");
+            }
+        });
+    }
+
+    @NonNull
+    private Retrofit getRetrofit(String url) {
+        return new Retrofit.Builder()
+                .baseUrl(url)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
     }
 
     @Override
@@ -172,8 +236,6 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         mCyWebview.setWebViewClient(new WebViewClient());
         mCyWebview.setScrollContainer(false);
         mCyWebview.loadUrl(WEB_INDEX);
-//        mCyWebview.addJavascriptInterface(new JSAndroidInteractive(CyLnXueXiJiaMainActivity.this,
-//                mFlCySmallVideo), "android");
         mCyWebview.addJavascriptInterface(new JSAndroidInteractive(CyLnXueXiJiaMainActivity.this),
                 "android");
 
@@ -201,8 +263,8 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         if (currentURL.indexOf("backUrl=") != -1) {
             try {
                 String subUrl = currentURL.substring(currentURL.indexOf("backUrl=") + "backUrl=".length(), currentURL.length());
-                if (subUrl.indexOf("index.xml")!=-1){
-                    subUrl=subUrl+"&backUrl=index.html";
+                if (subUrl.indexOf("index.xml") != -1) {
+                    subUrl = subUrl + "&backUrl=index.html";
                 }
                 String encodeUrl = URLDecoder.decode(subUrl, "utf-8");
                 endUrl = WEB_INDEX + encodeUrl;
@@ -246,19 +308,7 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         bundle.putSerializable("videoBean", videoBean);
         intent.putExtras(bundle);
         appCompatActivity.startActivity(intent);
-//        intent.putExtra("url", url);
-//        intent.putExtra("Activity", ACTIVITY_SIGN);
-//        intent.putExtra("videoBean",videoBean);
-//        appCompatActivity.startActivity(intent);
-
     }
-
-//    public static void actionStartCyLnXueXiJiaMainActivity(AppCompatActivity appCompatActivity,
-//                                                    String pruductID, String isFree){
-//        Intent intent = new Intent(appCompatActivity, CyLnXueXiJiaMainActivity.class);
-//        appCompatActivity.startActivity(intent);
-//        appCompatActivity.finish();
-//    }
 
     @Override
     protected void onDestroy() {
@@ -279,7 +329,6 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
 
         Context mContxt;
         private String mResult;
-        private String mCard_num;
 
         public JSAndroidInteractive(Context contxt) {
             mContxt = contxt;
@@ -327,8 +376,6 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
         @JavascriptInterface //sdk17版本以上加上注解
         public String getKeyNo() {
             mCard_num = UserLauncherBean.getInstance().getUserName();
-            Toast.makeText(CyLnXueXiJiaMainActivity.this, "调取了KeyNo:" + mCard_num,
-                    Toast.LENGTH_LONG).show();
             return mCard_num;
         }
 
@@ -347,15 +394,17 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public void getLiaoNingPay(String order) {
-            final OrderBean[] orderBean=new Gson().fromJson(order,OrderBean[].class);
+            Log.e(TAG, "getLiaoNingPay: " + order);
+            final OrderBean[] orderBean = new Gson().fromJson(order, OrderBean[].class);
+            mProductPrice = orderBean[0].getShow_price();
+            mProductIID = orderBean[0].getProduct_id();
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     orderEndUrl();
-//                    testOrderPlay();
-                    String sporderNum = getSporderNum(orderBean[0]);
-                    GoToOrder.goToOrderActivity(CyLnXueXiJiaMainActivity.this,orderBean[0].getProduct_name(),
-                            orderBean[0].getBuy_tips(), "240001488",sporderNum);
+                    mSporderNum = getSporderNum(orderBean[0]);
+                    GoToOrder.goToOrderActivity(CyLnXueXiJiaMainActivity.this, orderBean[0].getProduct_name(),
+                            orderBean[0].getBuy_tips(), "240001488", mSporderNum);
                 }
             });
 
@@ -364,9 +413,10 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
 
         @NonNull
         private String getSporderNum(OrderBean orderBean) {
-            SimpleDateFormat data=new SimpleDateFormat("yyyyMMddhhmmss");
-            String sporderNum=mCard_num+data.format(new Date())+ orderBean.getProduct_id();
-            Log.d(TAG, "订购号："+sporderNum);
+            SimpleDateFormat mYyyyMMddhhmmss = new SimpleDateFormat("yyyyMMddhhmmss");
+            mOrderTime = mYyyyMMddhhmmss.format(new Date());
+            String sporderNum = mCard_num + mOrderTime + orderBean.getProduct_id();
+            Log.d(TAG, "订购号：" + sporderNum);
             return sporderNum;
         }
 
@@ -375,8 +425,10 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
          */
         private void orderEndUrl() {
             mPayBackUrl = mCyWebview.getUrl();
+            Log.e(TAG, "orderEndUrl: " + mPayBackUrl);
             if (mPayBackUrl.indexOf("backUrl=") != -1) {
                 try {
+                    Log.e(TAG, "orderEndUrl: ------------------");
                     String subUrl = mPayBackUrl.substring(mPayBackUrl.indexOf("backUrl=") + "backUrl=".length(), mPayBackUrl.length());
                     String encodeUrl = URLDecoder.decode(subUrl, "utf-8");
                     if (ACTIVITY_SIGN.equals("PlayActivity")) {
@@ -413,25 +465,19 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
 
             Log.e(TAG, "getLiaoNingAuthentication: " + mVideoBeen[0]);
 
+            if (null==mVideoBeen[0].getVideo_url()) {
+                ACTIVITY_SIGN = "ACTIVITY_MAIN_ORDER";
+            } else {
+                ACTIVITY_SIGN = "ACTIVITY_MAIN_LIST_ORDER";
+            }
+
             long time = System.currentTimeMillis();
             String riddle = CyUtils.MD5(time + PRODUCT_PROGRAM_KEY);
             String temptoken = UserLauncherBean.getUserLauncherBean().getUser32Key();
             final String productId = "240001488";
-            mProductIID = mVideoBeen[0].getVideo_url();
-//            mIsFree = mVideoBeen[0].getIs_free();
-//            mUseID = mVideoBeen[0].getUser_id();
-//            mContentID = mVideoBeen[0].getContent_id();
-//            mPointID = mVideoBeen[0].getPoint_id();
-//            mVideoID = mVideoBeen[0].getVideo_id();
+            mProductIID = mVideoBeen[0].getProduct_id();
 
-//            Log.e(TAG, "authentication: "+ mUseID +":"+ mContentID);
-
-//            initDatas(mUseID,mProductIID, mContentID, mPointID);
-
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl(AUTHENTICATION_URL)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
+            Retrofit retrofit = getRetrofit(AUTHENTICATION_URL);
 
             ProductIDAuthenticationService productIDAuthenticationService = retrofit.create(ProductIDAuthenticationService.class);
             Call<AuthenticationBean> authenticationBeanCall = productIDAuthenticationService.getResult(
@@ -445,24 +491,13 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
                     authenticationBean = response.body();
                     authenticationBean.getResult();
                     mResult = authenticationBean.getResult();
-                    Log.e(TAG, "onResponse: "+mResult);
-//                    if (mResult.equals("0")) {
-//                        Toast.makeText(CyLnXueXiJiaMainActivity.this, "用户登陆状态异常", Toast.LENGTH_LONG).show();
-//                    } else if (mResult.equals("1")) {//1.跳转订购页面
-//                        if (mIsFree.equals("")&&mPointID.equals("")){
-//                            mCyWebview.loadUrl(mOrderUrl);
-//                        }else {
-//                            DialogFragment dialogFragment = OrderDialogFragment.newInstance(mProductIID, mIsFree);
-//                            dialogFragment.show(getFragmentManager(), "orderDialog");
-//                        }
-//                    } else if (mResult.equals("2")) {//2.鉴权通过，跳转播放页面
-//                        if (mIsFree.equals("")&&mPointID.equals("")){
-//                            Log.e(TAG, "onResponse: "+mOrderUrl);
-//                            mCyWebview.loadUrl(mOrderUrl);
-//                        }else {
-//                            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this,mVideoBeen[0]);
-//                        }
-//                    }
+                    if ("1".equals(mResult)) {
+                        mHandler.sendEmptyMessage(1);
+                    } else if ("2".equals(mResult)) {
+                        mHandler.sendEmptyMessage(2);
+                    } else {
+                        mHandler.sendEmptyMessage(1);
+                    }
                 }
 
                 @Override
@@ -472,93 +507,5 @@ public class CyLnXueXiJiaMainActivity extends AppCompatActivity {
             });
         }
     }
-
-//    private void testOrderPlay() {
-//        if (ACTIVITY_SIGN.equals("ACTIVITY_PLAY_ORDER")) {
-//            mCyWebview.loadUrl(mBackUrl);
-//            Log.e(TAG, "testOrderPlay: "+mPlayVideoBeen.toString());
-//            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this,mPlayVideoBeen);
-//        } else if (ACTIVITY_SIGN.equals("ACTIVITY_MAIN_LIST_ORDER")) {
-//            mCyWebview.loadUrl(mBackUrl);
-//            PlayActivity.actionStart(CyLnXueXiJiaMainActivity.this, mVideoBeen[0]);
-//        } else {
-//            mCyWebview.loadUrl(mBackUrl);
-//
-//        }
-//    }
-
-//    private void initDatas(String useID, String productIID, String contentID, String pointID) {
-//
-//        Log.e(TAG, "initDatas:========== "+useID+":"+useID+":"+productIID+":"+contentID);
-//
-//        Retrofit retrofit = new Retrofit.Builder()
-//                .baseUrl(WEB_INDEX)
-//                .addConverterFactory(GsonConverterFactory.create())
-//                .build();
-//
-//        PlayDataService playDataService = retrofit.create(PlayDataService.class);
-//        Call<PlayDataBean> playDataCall = playDataService.getPlayData(useID,productIID,contentID);
-//        playDataCall.enqueue(new Callback<PlayDataBean>() {
-//            @Override
-//            public void onResponse(Call<PlayDataBean> call, Response<PlayDataBean> response) {
-//                Log.e(TAG, "onResponse: "+response.toString());
-//                PlayDataBean mPlayDataBean = response.body();
-//                if (mPlayDataBean.getData()==null)
-//                    return;
-//                String gradeName=mPlayDataBean.getData().getGrade_name();
-//                String productType=mPlayDataBean.getData().getProduct_type();
-//                getPramasUrl(productType,gradeName);
-////                mPlayDataBean.getData().getGrade_name();
-//                Log.e(TAG, "onResponse: "+mPlayDataBean.getData().getGrade_name());
-////                List<TermsBean> listTerms = new ArrayList<TermsBean>();
-////                listTerms = mPlayDataBean.getData().getTerms();
-////                List<VideosBean> mVideosBeanList = new ArrayList<VideosBean>();
-////                List<ParamsBean> mParamsBeanList = new ArrayList<ParamsBean>();
-////                for (TermsBean term : listTerms) {
-////                    for (PointsBean point : term.getPoints()) {
-////                        if (point.getPoint_id().equals(id)) {
-////                            Log.e(TAG, "onResponse:------------------------------------------------- ");
-////                            mVideosBeanList = point.getVideos();
-////                            mParamsBeanList = ConverUtil.jsonToBeanList(point.getParams(), ParamsBean.class);
-//////                            initGridViewData();
-////                            for (VideosBean videosBean : mVideosBeanList) {
-////                                if (videosBean.getVideo_id().equals(productId)) {
-////                                    mVideosIndex = mVideosBeanList.indexOf(videosBean);
-////                                    mVideoName = mVideosBeanList.get(mVideosIndex).getVideo_name();
-////                                }
-////                            }
-////                        }
-////                    }
-////                }
-//            }
-//
-//            @Override
-//            public void onFailure(Call<PlayDataBean> call, Throwable t) {
-//                Log.e(TAG, "onFailure: ");
-//            }
-//        });
-//    }
-
-//    private void getPramasUrl(String productType, String gradeName)  {
-//        String buyUrl = StringUtils.format(BUY_URL1,mProductIID,mUseID);
-//        String   encodeUrl  = null;
-//        if (productType.equals("1")) {
-//            if (gradeName.contains("年级")) {//小学
-//                mBackUrl =StringUtils.format(ORDER_PRIMARY,mProductIID,mContentID,mPointID);
-//            } else if (gradeName.contains("初")) {//初中
-//                mBackUrl =StringUtils.format(ORDER_JUNITOR,mProductIID,mContentID,mPointID);
-//            } else if (gradeName.contains("高")) {//高中
-//                mBackUrl =StringUtils.format(ORDER_SENIOR,mProductIID,mContentID,mPointID);
-//            }else if (gradeName.contains("教")){
-////                mOrderUrl=StringUtils.format()
-//            }
-//        }
-//        try {
-//            encodeUrl = java.net.URLEncoder.encode(mBackUrl,   "utf-8");
-//        } catch (UnsupportedEncodingException e) {
-//            e.printStackTrace();
-//        }
-//        mOrderUrl=buyUrl+encodeUrl;
-//    }
 
 }

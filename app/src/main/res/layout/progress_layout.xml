@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="18dp"
             android:max="100"
-            android:progress="1"
+            android:progress="2"
             android:secondaryProgress="0"
             android:focusable="false"/>
 
